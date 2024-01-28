@@ -1,4 +1,4 @@
-	/*
+/*
  * task.c
  *
  *  Created on: Dec 26, 2022
@@ -10,6 +10,7 @@
 #include "kom.h"
 #include "stm32f4xx_hal.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "BME280_STM32.h"
 #include "math.h"
@@ -67,7 +68,7 @@ float readings[FILTER_SIZE];
 int ind_ = 0;
 
 #define RHO 1.204
-#define ZERO_SPAN 80
+#define ZERO_SPAN 15
 #define VELOCITY_OFFSET_SIZE 20
 int velocity_offset = 0;
 int adc_avg;
@@ -145,26 +146,26 @@ void cal_airspeed()
 
 void ADC_measure()
 {
-    // Battery voltage
-    float sum = 0;
-    readings[ind_] = ((3.3/4095) * dataadc[0]) * (14.7/4.7);
-    ind_ = (ind_ + 1) % FILTER_SIZE;
-    for (int i = 0; i < FILTER_SIZE; i++)
-    {
+	// Battery voltage
+	float sum = 0;
+	readings[ind_] = ((3.3/4095) * dataadc[0]) * (14.7/4.7);
+	ind_ = (ind_ + 1) % FILTER_SIZE;
+	for (int i = 0; i < FILTER_SIZE; i++)
+	{
 		sum += readings[i];
 		adc_avg += dataadc[1] - velocity_offset;
-    }
-    datatelemetri.voltage =  sum / FILTER_SIZE;
+	}
+	datatelemetri.voltage =  sum / FILTER_SIZE;
 
-    // Air speed
-    adc_avg /= FILTER_SIZE;
+	// Air speed
+	adc_avg /= FILTER_SIZE;
 
-    if (adc_avg >= (2048 - ZERO_SPAN) && adc_avg <= (2048 + ZERO_SPAN))
-    {
-    	datatelemetri.airspeed = 0;
-    }
-    else
-    {
+	if (adc_avg >= (2048 - ZERO_SPAN) && adc_avg <= (2048 + ZERO_SPAN))
+	{
+		datatelemetri.airspeed = 0;
+	}
+	else
+	{
 		if (adc_avg < 2048 - ZERO_SPAN)
 		{
 			datatelemetri.airspeed = sqrtf((-10000.0 * ((adc_avg / 4095.0) - 0.5)) / RHO);
@@ -173,7 +174,7 @@ void ADC_measure()
 		{
 			datatelemetri.airspeed = sqrtf((10000.0 * ((adc_avg / 4095.0) - 0.5)) / RHO);
 		}
-    }
+	}
 }
 
 uint8_t buatcs(char dat_[])
@@ -559,6 +560,43 @@ void CR()
 
 void adcinit()
 {
-    cal_airspeed();
-    HAL_ADC_Start_DMA(&hadc1, dataadc, 2);
+	// Air speed calibration
+	uint32_t adc_data = 0;
+	HAL_ADC_Start(&hadc1);
+	for (int i = 0; i < VELOCITY_OFFSET_SIZE; ++i)
+	{
+		HAL_ADC_PollForConversion(&hadc1, HAL_MAX_DELAY);
+		adc_data = HAL_ADC_GetValue(&hadc1);
+		velocity_offset += adc_data - 2048;
+	}
+	HAL_ADC_Stop(&hadc1);
+	velocity_offset /= VELOCITY_OFFSET_SIZE;
+
+	// Reinitialize ADC for multiple channel reading
+	ADC_ChannelConfTypeDef sConfig = {0};
+
+	hadc1.Init.NbrOfConversion = 2;
+	if (HAL_ADC_Init(&hadc1) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	sConfig.Channel = ADC_CHANNEL_9;
+	sConfig.Rank = 1;
+	sConfig.SamplingTime = ADC_SAMPLETIME_112CYCLES;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	sConfig.Channel = ADC_CHANNEL_10;
+	sConfig.Rank = 2;
+	sConfig.SamplingTime = ADC_SAMPLETIME_112CYCLES;
+	if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
+	{
+		Error_Handler();
+	}
+
+	// Start ADC DMA
+	HAL_ADC_Start_DMA(&hadc1, dataadc, 2);
 }
