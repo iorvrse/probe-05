@@ -24,7 +24,6 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>
 #include <string.h>
-#include "main.h"
 #include "kom.h"
 #include "task.h"
 #include "BME280_STM32.h"
@@ -243,8 +242,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		if (bno055_euler.x >= 180 && bno055_euler.x <= 360)
 		{
 			servogerak(&htim3, TIM_CHANNEL_1, 180);
-			angle = bno055_euler.x - 180;
-			servogerak(&htim3, TIM_CHANNEL_3, angle);
+			servogerak(&htim3, TIM_CHANNEL_3, bno055_euler.x - 180);
 		}
     }
 }
@@ -263,7 +261,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 
     if (huart == &huart3)
     {
-		checkdata_();
+    	checkdata_();
     }
 }
 
@@ -426,7 +424,7 @@ static void MX_ADC1_Init(void)
   hadc1.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE;
   hadc1.Init.ExternalTrigConv = ADC_SOFTWARE_START;
   hadc1.Init.DataAlign = ADC_DATAALIGN_RIGHT;
-  hadc1.Init.NbrOfConversion = 2;
+  hadc1.Init.NbrOfConversion = 1;
   hadc1.Init.DMAContinuousRequests = ENABLE;
   hadc1.Init.EOCSelection = ADC_EOC_SINGLE_CONV;
   if (HAL_ADC_Init(&hadc1) != HAL_OK)
@@ -436,14 +434,14 @@ static void MX_ADC1_Init(void)
 
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
-  sConfig.Channel = ADC_CHANNEL_9;
+  sConfig.Channel = ADC_CHANNEL_10;
   sConfig.Rank = 1;
   sConfig.SamplingTime = ADC_SAMPLETIME_480CYCLES;
   if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK)
   {
     Error_Handler();
   }
-
+  
   /** Configure for the selected ADC regular channel its corresponding rank in the sequencer and its sample time.
   */
   sConfig.Rank = 2;
