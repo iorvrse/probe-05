@@ -71,7 +71,7 @@ int ind_ = 0;
 #define ZERO_SPAN 15
 #define VELOCITY_OFFSET_SIZE 20
 int velocity_offset = 0;
-int adc_avg;
+float adc_avg;
 uint32_t dataadc[2];
 
 void init()
@@ -130,36 +130,37 @@ void RESETSRAM()
     TM_BKPSRAM_Write8(PCDEPLOY_ADR, datatelemetri.pcdeploy);
 }
 
-void cal_airspeed()
-{
-    uint16_t adc_data = 0;
-    HAL_ADC_Start(&hadc1);
-    for (int i = 0; i < VELOCITY_OFFSET_SIZE; ++i)
-    {
-		HAL_ADC_PollForConversion(&hadc1, 100);
-		adc_data = HAL_ADC_GetValue(&hadc1);
-		velocity_offset += adc_data - 2048;
-    }
-    HAL_ADC_Stop(&hadc1);
-    velocity_offset /= VELOCITY_OFFSET_SIZE;
-}
-
 void ADC_measure()
 {
-	// Battery voltage
+	adc_avg = 0;
+
+	/** Battery voltage measurement
+	 * ADC_Ref / MAX_ADC * ADC_Value * (R1 + R2 / R2)
+	 * 
+	 * NOTE: R1 is 10k, R2 is 4k7 and the battery voltage is 8.4 V
+	 * here we use 2.69 as ADC_Ref since the higher possible output of
+	 * voltage divider is ± 2.68 V while the actual ADC_Ref voltage is 3.3 V
+	 */
 	float sum = 0;
-	readings[ind_] = ((3.3/4095) * dataadc[0]) * (14.7/4.7);
+	readings[ind_] = ((2.69 / 4096) * dataadc[0]) * (14.7/4.7);
 	ind_ = (ind_ + 1) % FILTER_SIZE;
 	for (int i = 0; i < FILTER_SIZE; i++)
 	{
 		sum += readings[i];
 		adc_avg += dataadc[1] - velocity_offset;
 	}
-	datatelemetri.voltage =  sum / FILTER_SIZE;
-
-	// Air speed
+	datatelemetri.voltage = sum / FILTER_SIZE;
 	adc_avg /= FILTER_SIZE;
 
+	/** Differential Pressure Transfer Function (MPXV7002DP datasheet page 6)
+	 * Vout = Vs * (0.2 * P(kPa) + 0.5) ± 6.25% VFSS
+	 * P(Pa) = 1000 * (Vout / Vs - 0.5 ) / 0.2
+	 * 
+	 * NOTE: Vout and Vs is in ADC value
+	 *
+	 * Indicated Airspeed (IAS) in m/s
+	 * v = sqrt(2 * P / RHO)
+	 */
 	if (adc_avg >= (2048 - ZERO_SPAN) && adc_avg <= (2048 + ZERO_SPAN))
 	{
 		datatelemetri.airspeed = 0;
@@ -168,11 +169,11 @@ void ADC_measure()
 	{
 		if (adc_avg < 2048 - ZERO_SPAN)
 		{
-			datatelemetri.airspeed = sqrtf((-10000.0 * ((adc_avg / 4095.0) - 0.5)) / RHO);
+			datatelemetri.airspeed = sqrtf(2 * (-1000 * (adc_avg / 4096.0 - 0.5) / 0.2) / RHO);
 		}
 		else
 		{
-			datatelemetri.airspeed = sqrtf((10000.0 * ((adc_avg / 4095.0) - 0.5)) / RHO);
+			datatelemetri.airspeed = sqrtf(2 * (1000 * (adc_avg / 4096.0 - 0.5) / 0.2) / RHO);
 		}
 	}
 }

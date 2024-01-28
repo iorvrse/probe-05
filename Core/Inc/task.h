@@ -27,7 +27,6 @@ uint8_t buatcs(char dat_[]);
 float pressuretoalt(float press);
 void bno055_init();
 void state();
-void cal_air_speed();
 void ADC_measure();
 void adcinit();
 void READRAM();
