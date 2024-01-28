@@ -142,6 +142,12 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		}
 		Update_File("2032.txt", datatelemetri.telemetritotal);
 		HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, RESET);
+
+		// Stop telemetry after landed
+		if (strcmp(datatelemetri.state, "LANDED") == 0)
+		{
+			flagtel = 0;
+		}
 	}
 
 	if (htim == &htim11)
