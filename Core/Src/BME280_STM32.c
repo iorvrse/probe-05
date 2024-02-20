@@ -260,11 +260,11 @@ void BME280_Measure (void)
 #endif
 		  }
 
-		  if (hRaw == 0x8000) Humidity = 0; // nilai dalam kasus pengukuran kelembaban dinonaktifkan
-		  else
-		  {
-			  Humidity = (bme280_compensate_H_int32 (hRaw))/1024.0;  // sesuai dengan datasheet, kelembaban adalah x1024
-		  }
+//		  if (hRaw == 0x8000) Humidity = 0; // nilai dalam kasus pengukuran kelembaban dinonaktifkan
+//		  else
+//		  {
+//			  Humidity = (bme280_compensate_H_int32 (hRaw))/1024.0;  // sesuai dengan datasheet, kelembaban adalah x1024
+//		  }
 	}
 
 

@@ -10,27 +10,30 @@
 
 #include "stm32f407xx.h"
 
-void rtcbackup();
+void init();
+void adcinit();
+void bno055_init();
+void READRAM();
+void RESETSRAM();
+void wakturtc(uint8_t timebuff, char datat[]);
 void Settime(uint8_t jam_, uint8_t menit_, uint8_t detik_);
+void get_time();
+void rtcbackup();
+void ADC_measure();
+uint8_t buatcs(char dat_[]);
+float pressuretoalt(float press);
+void ambildata();
+void kirimdata();
+void state();
 void CX();
 void BCN();
 void ST();
 void SIM();
 void SIMP();
-void get_time();
 void CAL();
-void kirimdata();
-void wakturtc(uint8_t timebuff, char datat[]);
-void ambildata();
-void init();
-uint8_t buatcs(char dat_[]);
-float pressuretoalt(float press);
-void bno055_init();
-void state();
-void ADC_measure();
-void adcinit();
-void READRAM();
-void RESETSRAM();
+void GB();
+void HS();
+void CAM();
 void CR();
 
 typedef struct {

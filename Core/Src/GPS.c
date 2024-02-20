@@ -418,6 +418,14 @@ lwgps_process(lwgps_t* gh, const void* data, size_t len) {
             } else if (evt_fn != NULL) {
                 evt_fn(STAT_CHECKSUM_FAIL);
 #endif
+            } else {
+            	gpslat = 0;
+            	gpslong = 0;
+            	gpsalt = 0;
+            	gpssat = 0;
+            	strcpy(gpsjam, "00");
+            	strcpy(gpsmenit, "00");
+            	strcpy(gpsdetik, "00");
             }
         } else {
             if (!gh->p.star) {

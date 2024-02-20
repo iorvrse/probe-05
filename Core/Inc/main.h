@@ -75,7 +75,13 @@ void Error_Handler(void);
 #define CAM2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-
+#define TEAM_ID			2032
+#define PACKETCOUNT_ADR 0x00
+#define REFALT_ADR		0x32
+#define STATEIND_ADR 	0x96
+#define FLAGTEL_ADR		0xC8
+#define HSDEPLOY_ADR 	0xFA
+#define PCDEPLOY_ADR 	0x12C
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

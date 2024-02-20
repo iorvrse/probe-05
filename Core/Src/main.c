@@ -41,13 +41,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define TEAM_ID			2032
-#define PACKETCOUNT_ADR 0x00
-#define REFALT_ADR		0x32
-#define STATEIND_ADR 	0x96
-#define FLAGTEL_ADR		0xC8
-#define HSDEPLOY_ADR 	0xFA
-#define PCDEPLOY_ADR 	0x12C
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -86,22 +80,19 @@ extern FIL fil;
 extern FRESULT fresult;
 extern UINT br, bw;
 
-extern FATFS *pfs;
-extern DWORD fre_clust;
-extern uint32_t total,free_space;
-
-uint8_t flagkamera1on;
-uint8_t flagkamera2on;
+extern datatelemetri_t datatelemetri;
+extern uint16_t counting;
+extern uint8_t flaggimbal;
+extern uint8_t flagtel;
+extern uint8_t flagkameraon;
+extern uint8_t flagkameraoff;
+extern uint8_t camera;
 uint8_t timerkamera1 = 29;
-uint8_t flagkameraoff;
 uint8_t timerkamera2 = 26;
+uint16_t cam_pin;
 
-int16_t angle;
 bno055_vector_t bno055_euler, bno055_gyro;
 
-extern uint8_t flagtel;
-extern uint16_t counting;
-extern datatelemetri_t datatelemetri;
 
 /* USER CODE END PV */
 
@@ -109,7 +100,6 @@ extern datatelemetri_t datatelemetri;
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_DMA_Init(void);
-static void MX_RTC_Init(void);
 static void MX_USART3_UART_Init(void);
 static void MX_TIM10_Init(void);
 static void MX_I2C2_Init(void);
@@ -122,6 +112,7 @@ static void MX_TIM3_Init(void);
 static void MX_TIM9_Init(void);
 static void MX_TIM13_Init(void);
 static void MX_TIM11_Init(void);
+static void MX_RTC_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -153,55 +144,39 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	if (htim == &htim11)
 	{
 		BME280_Measure();
-		if (flagkamera1on)
+
+		if (flagkameraon)
 		{
+			switch (camera) {
+				case 1:
+					cam_pin = CAM1_Pin;
+					break;
+				case 2:
+					cam_pin = CAM2_Pin;
+					break;
+			}
+
 			timerkamera1--;
 			if(timerkamera1 < 29 && timerkamera1 > 27)
 			{
 				//28
-				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, SET);
+				HAL_GPIO_WritePin(GPIOB, cam_pin, SET);
 			}
 			else if (timerkamera1 > 11 && timerkamera1 < 13)
 			{
 				//12
-				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, RESET);
+				HAL_GPIO_WritePin(GPIOB, cam_pin, RESET);
 			}
 			else if (timerkamera1 > 3 && timerkamera1 < 5)
 			{
 				//4
-				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, SET);
+				HAL_GPIO_WritePin(GPIOB, cam_pin, SET);
 			}
 			if (timerkamera1 < 1)
 			{
-				flagkamera1on = 0;
+				flagkameraon = 0;
 				timerkamera1 = 29;
-				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, RESET);
-			}
-		}
-
-		if (flagkamera2on)
-		{
-			timerkamera1--;
-			if (timerkamera1 < 29 && timerkamera1 > 27)
-			{
-				//28
-				HAL_GPIO_WritePin(CAM2_GPIO_Port, CAM2_Pin, SET);
-			}
-			else if (timerkamera1 > 11 && timerkamera1 < 13)
-			{
-				//12
-				HAL_GPIO_WritePin(CAM2_GPIO_Port, CAM2_Pin, RESET);
-			}
-			else if (timerkamera1 > 3 && timerkamera1 < 5)
-			{
-				//4
-				HAL_GPIO_WritePin(CAM2_GPIO_Port, CAM2_Pin, SET);
-			}
-			if (timerkamera1 < 1)
-			{
-				flagkamera2on = 0;
-				timerkamera1 = 29;
-				HAL_GPIO_WritePin(CAM2_GPIO_Port, CAM2_Pin, RESET);
+				HAL_GPIO_WritePin(GPIOB, cam_pin, RESET);
 			}
 		}
 
@@ -240,15 +215,19 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		bno055_gyro = bno055_getVectorGyroscope();
 		bno055_euler = bno055_getVectorEuler();
-		if (bno055_euler.x >= 0 && bno055_euler.x < 180)
+
+		if (flaggimbal)
 		{
-			servogerak(&htim3, TIM_CHANNEL_1, bno055_euler.x);
-			servogerak(&htim3, TIM_CHANNEL_3, 0);
-		}
-		if (bno055_euler.x >= 180 && bno055_euler.x <= 360)
-		{
-			servogerak(&htim3, TIM_CHANNEL_1, 180);
-			servogerak(&htim3, TIM_CHANNEL_3, bno055_euler.x - 180);
+			if (bno055_euler.x >= 0 && bno055_euler.x < 180)
+			{
+				servogerak(&htim3, TIM_CHANNEL_1, bno055_euler.x);
+				servogerak(&htim3, TIM_CHANNEL_3, 0);
+			}
+			if (bno055_euler.x >= 180 && bno055_euler.x <= 360)
+			{
+				servogerak(&htim3, TIM_CHANNEL_1, 180);
+				servogerak(&htim3, TIM_CHANNEL_3, bno055_euler.x - 180);
+			}
 		}
     }
 }
@@ -306,7 +285,6 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_DMA_Init();
-  MX_RTC_Init();
   MX_USART3_UART_Init();
   MX_TIM10_Init();
   MX_FATFS_Init();
@@ -320,17 +298,18 @@ int main(void)
   MX_TIM9_Init();
   MX_TIM13_Init();
   MX_TIM11_Init();
+  MX_RTC_Init();
   /* USER CODE BEGIN 2 */
 
   TM_BKPSRAM_Init();
   init();
   rtcbackup();
+  Mount_SD((const TCHAR *)"");
   bno055_init();
   if (BME280_Config(OSRS_2, OSRS_16, OSRS_1, MODE_NORMAL, T_SB_0p5, IIR_16) == 0)
   {
       HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, SET);
   }
-  Mount_SD((const TCHAR *)"");
   Create_File("2032.txt");
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
@@ -937,7 +916,7 @@ static void MX_DMA_Init(void)
 
   /* DMA interrupt init */
   /* DMA1_Stream1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 1, 0);
+  HAL_NVIC_SetPriority(DMA1_Stream1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream1_IRQn);
   /* DMA1_Stream3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Stream3_IRQn, 1, 0);
