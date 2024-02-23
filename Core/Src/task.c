@@ -226,11 +226,11 @@ void ADC_measure()
 	 * ADC_Ref / MAX_ADC * ADC_Value * (R1 + R2 / R2)
 	 * 
 	 * NOTE: R1 is 10k, R2 is 4k7 and the battery voltage is 8.4 V
-	 * here we use 2.69 as ADC_Ref and 3333.5 as MAX_ADC since the highest possible output of
+	 * here we use 2.68 as ADC_Ref and 3333 as MAX_ADC since the highest possible output of
 	 * voltage divider is ± 2.68 V while the actual ADC_Ref voltage is 3.3 V
 	 */
 	float sum = 0;
-	readings[ind_] = ((2.68 / 3333.5) * dataadc[0]) * (14.7 / 4.7);
+	readings[ind_] = ((2.68 / 3333) * dataadc[0]) * (14.7 / 4.7);
 	ind_ = (ind_ + 1) % FILTER_SIZE;
 	for (int i = 0; i < FILTER_SIZE; i++)
 	{
@@ -390,13 +390,13 @@ void ambildata()
     datatelemetri.tilt_x = bno055_euler.y;
     datatelemetri.tilt_y = bno055_euler.z;
 
-    sprintf(datatelemetri.telemetribuff,"%d,%c%c:%c%c:%c%c,%d,%c,%s,%.1f,%.2f,%c,%c,%.1f,%.1f,%.1f,%c%c:%c%c:%c%c,%.1f,%.4f,%.4f,%d,%.2f,%.2f,%.1f,%s,,%.1f",
-    		TEAM_ID, datatelemetri.jam[0], datatelemetri.jam[1], datatelemetri.menit[0], datatelemetri.menit[1], datatelemetri.detik[0], datatelemetri.detik[1],
-			datatelemetri.packetcount, datatelemetri.fmode, datatelemetri.state, datatelemetri.alt, datatelemetri.airspeed, datatelemetri.hsdeploy, datatelemetri.pcdeploy,
-			datatelemetri.temp, datatelemetri.voltage, datatelemetri.barpress, gpsjam[0], gpsjam[1], gpsmenit[0], gpsmenit[1], gpsdetik[0], gpsdetik[1],
-			gpsalt, gpslat, gpslong, gpssat, datatelemetri.tilt_x, datatelemetri.tilt_y, datatelemetri.rot_z, datatelemetri.echocmd, datatelemetri.heading);
-    csh = ~buatcs(datatelemetri.telemetribuff);
-    sprintf(datatelemetri.telemetritotal,"%s,%d\r\n", datatelemetri.telemetribuff, csh);
+    sprintf(datatelemetri.telemetri1, "%d,%c%c:%c%c:%c%c,%d,",TEAM_ID, datatelemetri.jam[0], datatelemetri.jam[1], datatelemetri.menit[0], datatelemetri.menit[1], datatelemetri.detik[0], datatelemetri.detik[1], datatelemetri.packetcount);
+	sprintf(datatelemetri.telemetri2, "%c,%s,%.1f,%.2f,%c,%c,%.1f,%.1f,", datatelemetri.fmode, datatelemetri.state, datatelemetri.alt, datatelemetri.airspeed, datatelemetri.hsdeploy, datatelemetri.pcdeploy, datatelemetri.temp, datatelemetri.voltage);
+	sprintf(datatelemetri.telemetri3, "%.1f,%c%c:%c%c:%c%c,%.1f,", datatelemetri.barpress, gpsjam[0], gpsjam[1], gpsmenit[0], gpsmenit[1], gpsdetik[0], gpsdetik[1], gpsalt);
+	sprintf(datatelemetri.telemetri4, "%.4f,%.4f,%d,%.2f,%.2f,%.1f,%s,,%.1f,", gpslat, gpslong, gpssat, datatelemetri.tilt_x, datatelemetri.tilt_y, datatelemetri.rot_z, datatelemetri.echocmd, datatelemetri.heading);
+	sprintf(datatelemetri.telemetribuff, "%s%s%s%s", datatelemetri.telemetri1, datatelemetri.telemetri2, datatelemetri.telemetri3, datatelemetri.telemetri4);
+	csh = ~buatcs(datatelemetri.telemetribuff);
+	sprintf(datatelemetri.telemetritotal, "%s%d\r\n", datatelemetri.telemetribuff, csh);
 }
 
 void kirimdata()

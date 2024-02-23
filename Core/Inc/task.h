@@ -37,6 +37,10 @@ void CAM();
 void CR();
 
 typedef struct {
+	char telemetri1[20];
+	char telemetri2[50];
+	char telemetri3[25];
+	char telemetri4[55];
 	char telemetribuff[170];
 	char telemetritotal[175];
 
