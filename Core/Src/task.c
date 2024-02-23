@@ -272,7 +272,7 @@ uint8_t buatcs(char dat_[])
 {
     uint8_t hasil = 0, temp = 0;
     uint16_t buffhasil = 0;
-    for (int i = 0; i < 150; i++)
+    for (int i = 0; i < sizeof(datatelemetri.telemetritotal); i++)
     {
         if (dat_[i]== '\0')
         {
