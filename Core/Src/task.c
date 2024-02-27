@@ -71,17 +71,17 @@ uint32_t dataadc[2];
 
 void init()
 {
-    strcpy(datatelemetri.state, "LAUNCH_WAIT");
     READRAM();
-    datatelemetri.fmode = 'F';
+    strcpy(datatelemetri.state, "LAUNCH_WAIT");
     strcpy(datatelemetri.echocmd, "CXON");
+    strcpy(gpsjam, "00");
+    strcpy(gpsmenit, "00");
+    strcpy(gpsdetik, "00");
+    datatelemetri.fmode = 'F';
     gpslat = 0.0000;
     gpslong = 0.0000;
     gpsalt = 0.0;
     gpssat = 0;
-    strcpy(gpsjam, "00");
-    strcpy(gpsmenit, "00");
-    strcpy(gpsdetik, "00");
     servogerak(&htim3, TIM_CHANNEL_1, 0);
 	servogerak(&htim3, TIM_CHANNEL_3, 0);
     servogerak(&htim4, TIM_CHANNEL_1, 0);
@@ -99,15 +99,12 @@ void READRAM()
 			strcpy(datatelemetri.state, "ROCKET_SEPARATION");
 			break;
 		case 2:
-			strcpy(datatelemetri.state, "HS_DEPLOYED");
-			break;
-		case 3:
 			strcpy(datatelemetri.state, "DESCENT");
 			break;
-		case 4:
-			strcpy(datatelemetri.state, "PC_DEPLOYED");
+		case 3:
+			strcpy(datatelemetri.state, "HS_RELEASE");
 			break;
-		case 5:
+		case 4:
 			strcpy(datatelemetri.state, "LANDED");
 			break;
     }
@@ -272,7 +269,7 @@ uint8_t buatcs(char dat_[])
 {
     uint8_t hasil = 0, temp = 0;
     uint16_t buffhasil = 0;
-    for (int i = 0; i < sizeof(datatelemetri.telemetritotal); i++)
+    for (int i = 0; i < 175; i++)
     {
         if (dat_[i]== '\0')
         {
@@ -390,13 +387,13 @@ void ambildata()
     datatelemetri.tilt_x = bno055_euler.y;
     datatelemetri.tilt_y = bno055_euler.z;
 
-    sprintf(datatelemetri.telemetri1, "%d,%c%c:%c%c:%c%c,%d,",TEAM_ID, datatelemetri.jam[0], datatelemetri.jam[1], datatelemetri.menit[0], datatelemetri.menit[1], datatelemetri.detik[0], datatelemetri.detik[1], datatelemetri.packetcount);
-	sprintf(datatelemetri.telemetri2, "%c,%s,%.1f,%.2f,%c,%c,%.1f,%.1f,", datatelemetri.fmode, datatelemetri.state, datatelemetri.alt, datatelemetri.airspeed, datatelemetri.hsdeploy, datatelemetri.pcdeploy, datatelemetri.temp, datatelemetri.voltage);
-	sprintf(datatelemetri.telemetri3, "%.1f,%c%c:%c%c:%c%c,%.1f,", datatelemetri.barpress, gpsjam[0], gpsjam[1], gpsmenit[0], gpsmenit[1], gpsdetik[0], gpsdetik[1], gpsalt);
-	sprintf(datatelemetri.telemetri4, "%.4f,%.4f,%d,%.2f,%.2f,%.1f,%s,,%.1f,", gpslat, gpslong, gpssat, datatelemetri.tilt_x, datatelemetri.tilt_y, datatelemetri.rot_z, datatelemetri.echocmd, datatelemetri.heading);
-	sprintf(datatelemetri.telemetribuff, "%s%s%s%s", datatelemetri.telemetri1, datatelemetri.telemetri2, datatelemetri.telemetri3, datatelemetri.telemetri4);
+    sprintf(datatelemetri.telemetribuff,"2032,%c%c:%c%c:%c%c,%d,%c,%s,%.1f,%.2f,%c,%c,%.1f,%.1f,%.1f,%c%c:%c%c:%c%c,%.1f,%.4f,%.4f,%d,%.2f,%.2f,%.1f,%s,,%.1f,",
+        		datatelemetri.jam[0], datatelemetri.jam[1], datatelemetri.menit[0], datatelemetri.menit[1], datatelemetri.detik[0], datatelemetri.detik[1],
+    			datatelemetri.packetcount, datatelemetri.fmode, datatelemetri.state, datatelemetri.alt, datatelemetri.airspeed, datatelemetri.hsdeploy, datatelemetri.pcdeploy,
+    			datatelemetri.temp, datatelemetri.voltage, datatelemetri.barpress, gpsjam[0], gpsjam[1], gpsmenit[0], gpsmenit[1], gpsdetik[0], gpsdetik[1],
+    			gpsalt, gpslat, gpslong, gpssat, datatelemetri.tilt_x, datatelemetri.tilt_y, datatelemetri.rot_z, datatelemetri.echocmd, datatelemetri.heading);
 	csh = ~buatcs(datatelemetri.telemetribuff);
-	sprintf(datatelemetri.telemetritotal, "%s%d\r\n", datatelemetri.telemetribuff, csh);
+	sprintf(datatelemetri.telemetritotal,"%s%d\r\n", datatelemetri.telemetribuff, csh);
 }
 
 void kirimdata()
@@ -415,60 +412,63 @@ void state()
     if (datatelemetri.alt > 100 && flagstate == 0)
     {
 		strcpy(datatelemetri.state, "ASCENT");
-		flagstate = 1;
 		TM_BKPSRAM_Write8(STATEIND_ADR,0);
+		flagstate = 1;
     }
-    else if (datatelemetri.alt >= 720 && datatelemetri.alt < 730 && flagstate == 1)
+    else if ((datatelemetri.alt - tempalt) < 0 && flagstate == 1)
     {
-		strcpy(datatelemetri.state, "ROCKET_SEPARATION");
-		flagstate = 2;
-		flaggimbal = 1;
-		camera = 2;
-		flagkameraon = 1;
-		TM_BKPSRAM_Write8(STATEIND_ADR,1);
-    }
-    else if (datatelemetri.alt > 710 && flagstate == 2)
-    {
-		strcpy(datatelemetri.state, "HS_DEPLOYED");
-		datatelemetri.hsdeploy = 'P';
-		datatelemetri.pcdeploy 	= 'N';
-		TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
-		TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
-		flagstate = 3;
-		TM_BKPSRAM_Write8(STATEIND_ADR,2);
-    }
-    else if ((datatelemetri.alt - tempalt) < 0 && flagstate == 3)
-    {
-		TM_BKPSRAM_Write8(STATEIND_ADR,3);
-		valid++;
+    	valid++;
 		if (valid > 4)
 		{
-			strcpy(datatelemetri.state, "DESCENT");
-			flagstate = 4;
 			valid = 0;
+			datatelemetri.hsdeploy = 'P';
+			datatelemetri.pcdeploy 	= 'N';
+			strcpy(datatelemetri.state, "ROCKET_SEPARATION");
+			TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
+			TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
+			TM_BKPSRAM_Write8(STATEIND_ADR, 1);
+			camera = 2;
+			flagkameraon = 1;
+			flaggimbal = 1;
+			flagstate = 2;
 		}
     }
-    else if (datatelemetri.alt <= 120 && flagstate == 4 && !flaginvalid)
+    else if ((datatelemetri.alt - tempalt) < 0 && flagstate == 2)
     {
-		TM_BKPSRAM_Write8(STATEIND_ADR,4);
-		strcpy(datatelemetri.state, "PC_DEPLOYED");
-		flagstate = 5;
-		datatelemetri.pcdeploy = 'C';
+		strcpy(datatelemetri.state, "DESCENT");
+		TM_BKPSRAM_Write8(STATEIND_ADR,2);
+		flagstate = 3;
+    }
+    else if (datatelemetri.alt <= 150 && flagstate == 3 && !flaginvalid)
+    {
+		servogerak(&htim4, TIM_CHANNEL_1, 135);
+		flagstate = 4;
+    }
+    else if (datatelemetri.alt <= 100 && flagstate == 4 && !flaginvalid)
+    {
+		strcpy(datatelemetri.state, "HS_RELEASE");
+    	datatelemetri.pcdeploy = 'C';
 		datatelemetri.hsdeploy = 'P';
+		TM_BKPSRAM_Write8(STATEIND_ADR,3);
 		TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
 		TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
-		servogerak(&htim4, TIM_CHANNEL_1, 135);
+		flagstate = 5;
     }
     else if (datatelemetri.alt < 13 && flagstate == 5 && !flaginvalid)
     {
-		TM_BKPSRAM_Write8(STATEIND_ADR,5);
 		strcpy(datatelemetri.state, "LANDED");
-		flagstate = 6;
 		datatelemetri.pcdeploy = 'C';
 		datatelemetri.hsdeploy = 'P';
+		TM_BKPSRAM_Write8(STATEIND_ADR,4);
 		TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
 		TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
-		flagkameraoff = 1;
+		valid++;
+		if (valid > 4)
+		{
+			flagkameraoff = 1;
+			flagtel = 0;
+			valid = 0;
+		}
 		HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
     }
 }
@@ -578,21 +578,21 @@ void SIMP()
 
 void CAL()
 {
+    RESETSRAM();
     if (flagsim == 0)
     {
     	refalt = pressuretoalt(Pressure / 100);
     }
-    counting  = 0;
-    datatelemetri.packetcount = counting;
     flagsim = 0;
     flagstate = 0;
     flagrefalt = 0;
     flaggimbal = 0;
     flaginvalid = 0;
+    counting  = 0;
+    datatelemetri.packetcount = counting;
     datatelemetri.hsdeploy = 'N';
     datatelemetri.pcdeploy = 'N';
     strcpy(datatelemetri.state, "LAUNCH_WAIT");
-    RESETSRAM();
     camera = 1;
     flagkameraon = 1;
     HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, RESET);
@@ -605,13 +605,14 @@ void CAL()
 void GB()
 {
 	isidata(4, commandbuff);
-	if ((commandbuff[0] == 'O') && (commandbuff[1] == 'N'))
+	switch (commandbuff[1])
 	{
-		flaggimbal = 1;
-	}
-	else if ((commandbuff[0] == 'O') && (commandbuff[1] == 'F'))
-	{
-		flaggimbal = 0;
+		case 'N':
+			flaggimbal = 1;
+			break;
+		case 'F':
+			flaggimbal = 0;
+			break;
 	}
 }
 
@@ -623,20 +624,20 @@ void HS()
 void CAM()
 {
 	isidata(4, commandbuff);
-	if (commandbuff[0] == '1')
+	switch (commandbuff[0])
 	{
-		camera = 1;
-		flagkameraon = 1;
-	}
-	else if (commandbuff[0] == '2')
-	{
-		camera = 2;
-		flagkameraon = 1;
-	}
-	else if (commandbuff[0] == 'O')
-	{
-		camera = 0;
-		flagkameraoff = 1;
+		case '1':
+			camera = 1;
+			flagkameraon = 1;
+			break;
+		case '2':
+			camera = 2;
+			flagkameraon = 2;
+			break;
+		case '0':
+			camera = 0;
+			flagkameraoff = 1;
+			break;
 	}
 }
 

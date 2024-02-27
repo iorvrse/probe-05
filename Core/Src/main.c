@@ -129,16 +129,13 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 		{
 			counting++;
 			TM_BKPSRAM_Write16(PACKETCOUNT_ADR, counting);
-			kirimdata();
+			HAL_UART_Transmit_DMA(&huart3, (uint8_t *)datatelemetri.telemetritotal, strnlen(datatelemetri.telemetritotal, sizeof(datatelemetri.telemetritotal)));
+			HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, SET);
 		}
-		Update_File("2032.txt", datatelemetri.telemetritotal);
+		f_open(&fil, "2032.txt", FA_OPEN_APPEND | FA_WRITE);
+		f_write(&fil, datatelemetri.telemetritotal, strlen(datatelemetri.telemetritotal), &bw);
+		f_close(&fil);
 		HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, RESET);
-
-		// Stop telemetry after landed
-		if (strcmp(datatelemetri.state, "LANDED") == 0)
-		{
-			flagtel = 0;
-		}
 	}
 
 	if (htim == &htim11)
@@ -223,7 +220,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 				servogerak(&htim3, TIM_CHANNEL_1, bno055_euler.x);
 				servogerak(&htim3, TIM_CHANNEL_3, 0);
 			}
-			if (bno055_euler.x >= 180 && bno055_euler.x <= 360)
+			else if (bno055_euler.x >= 180 && bno055_euler.x <= 360)
 			{
 				servogerak(&htim3, TIM_CHANNEL_1, 180);
 				servogerak(&htim3, TIM_CHANNEL_3, bno055_euler.x - 180);
@@ -305,12 +302,12 @@ int main(void)
   init();
   rtcbackup();
   Mount_SD((const TCHAR *)"");
+  Create_File("2032.txt");
   bno055_init();
   if (BME280_Config(OSRS_2, OSRS_16, OSRS_1, MODE_NORMAL, T_SB_0p5, IIR_16) == 0)
   {
       HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, SET);
   }
-  Create_File("2032.txt");
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
