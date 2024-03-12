@@ -1,3 +1,0 @@
-../Core/Src/NMEA.c:38:5:decodeGGA	24
-../Core/Src/NMEA.c:203:5:decodeRMC	15
-../Core/Src/NMEA.c:306:6:parsegpsdata	3

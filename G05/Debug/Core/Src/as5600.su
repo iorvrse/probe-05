@@ -1,4 +1,0 @@
-../Core/Src/as5600.c:6:9:readReg2	40	static
-../Core/Src/as5600.c:13:9:getCumulativePosition	16	static
-../Core/Src/as5600.c:36:9:resetPosition	24	static
-../Core/Src/as5600.c:43:9:resetCumulativePosition	24	static

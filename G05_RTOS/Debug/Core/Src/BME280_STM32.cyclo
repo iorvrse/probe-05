@@ -1,8 +1,0 @@
-../Core/Src/BME280_STM32.c:26:6:BME280_Delay	1
-../Core/Src/BME280_STM32.c:35:6:TrimRead	1
-../Core/Src/BME280_STM32.c:65:5:BME280_Config	8
-../Core/Src/BME280_STM32.c:126:5:BMEReadRaw	2
-../Core/Src/BME280_STM32.c:157:9:BME280_compensate_T_int32	1
-../Core/Src/BME280_STM32.c:172:10:BME280_compensate_P_int64	2
-../Core/Src/BME280_STM32.c:228:10:bme280_compensate_H_int32	1
-../Core/Src/BME280_STM32.c:249:6:BME280_Measure	4
