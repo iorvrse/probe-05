@@ -4,7 +4,7 @@
 
 uint8_t rxdata, datalkp[30], cmd = 0;
 extern UART_HandleTypeDef huart3;
-extern osThreadId_t commandTaskHandle;
+extern osThreadId_t calibrationTaskHandle;
 
 void kominit(void)
 {
@@ -67,7 +67,17 @@ void checkdata_(void)
 			datalkp[cmd] = '\r';
 			cmd = 0;
 
-			osThreadFlagsSet(commandTaskHandle, 1);
+			if ((cocokan(3, "CX") == 2) && (cocokan(2, "2032") == 4)) CX();
+			else if ((cocokan(3, "SIMP") == 4) && (cocokan(2,"2032") == 4)) SIMP();
+			else if ((cocokan(3, "SIM") == 3) && (cocokan(2,"2032") == 4)) SIM();
+			else if ((cocokan(3, "IMU") == 3) && (cocokan(2,"2032") == 4)) osThreadFlagsSet(calibrationTaskHandle, 1);
+			else if ((cocokan(3, "CAL") == 3) && (cocokan(2,"2032") == 4)) CAL();
+			else if ((cocokan(3, "ST") == 2) && (cocokan(2,"2032") == 4)) ST();
+			else if ((cocokan(3, "CR") == 2) && (cocokan(2,"2032") == 4)) CR();
+			else if ((cocokan(3, "BCN") == 3) && (cocokan(2,"2032") == 4)) BCN();
+			else if ((cocokan(3, "GB") == 2) && (cocokan(2,"2032") == 4)) GB();
+			else if ((cocokan(3, "HS") == 2) && (cocokan(2,"2032") == 4)) HS();
+			else if ((cocokan(3, "CAM") == 3) && (cocokan(2,"2032") == 4)) CAM();
 		}
 		else
 		{

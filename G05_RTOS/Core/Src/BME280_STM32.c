@@ -3,11 +3,6 @@
 extern I2C_HandleTypeDef hi2c3;
 #define BME280_I2C &hi2c3
 
-#define SUPPORT_64BIT 1
-//#define SUPPORT_32BIT 1
-
-#define BME280_ADDRESS 0xEC  // SDIO ke ground, 7 bit address = 0x76 and 8 bit address = 0x76<<1 = 0xEC
-
 extern float Temperature, Pressure, Humidity;
 
 uint8_t chipID;

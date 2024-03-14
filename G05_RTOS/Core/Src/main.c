@@ -89,7 +89,7 @@ DMA_HandleTypeDef hdma_usart3_tx;
 osThreadId_t defaultTaskHandle;
 const osThreadAttr_t defaultTask_attributes = {
   .name = "defaultTask",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityRealtime7,
 };
 /* Definitions for gimbalTask */
@@ -155,19 +155,19 @@ const osThreadAttr_t cameraTask_attributes = {
   .stack_size = 128 * 4,
   .priority = (osPriority_t) osPriorityHigh,
 };
-/* Definitions for commandTask */
-osThreadId_t commandTaskHandle;
-const osThreadAttr_t commandTask_attributes = {
-  .name = "commandTask",
+/* Definitions for calibrationTask */
+osThreadId_t calibrationTaskHandle;
+const osThreadAttr_t calibrationTask_attributes = {
+  .name = "calibrationTask",
   .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh5,
+  .priority = (osPriority_t) osPriorityRealtime6,
 };
-/* Definitions for parseTask */
-osThreadId_t parseTaskHandle;
-const osThreadAttr_t parseTask_attributes = {
-  .name = "parseTask",
+/* Definitions for gpsTask */
+osThreadId_t gpsTaskHandle;
+const osThreadAttr_t gpsTask_attributes = {
+  .name = "gpsTask",
   .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityHigh5,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for telemetrySemaphore */
 osSemaphoreId_t telemetrySemaphoreHandle;
@@ -189,6 +189,8 @@ UINT br, bw;
 
 extern float Temperature, Pressure, Humidity, Spressure, refalt, tempalt;
 
+extern lwgps_t gps;
+extern char rxgps[128];
 extern float gpslat,gpslong,gpsalt;
 extern uint8_t gpssat;
 extern char gpsdetik[3], gpsmenit[3], gpsjam[3];
@@ -197,6 +199,8 @@ extern datatelemetri_t datatelemetri;
 extern uint16_t counting;
 extern uint8_t flagtel, flagsim;
 
+bno055_calibration_data_t bno055_calData;
+bno055_calibration_state_t bno055_calStat;
 bno055_vector_t bno055_euler, bno055_gyro;
 
 PID_TypeDef _PID;
@@ -233,8 +237,8 @@ void StartStateTask(void *argument);
 void StartGetDataTask(void *argument);
 void StartTelemetryTask(void *argument);
 void StartCameraTask(void *argument);
-void StartCommandTask(void *argument);
-void StartParseTask(void *argument);
+void StartCalibrationTask(void *argument);
+void StartGPSTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 int map(int value, int from_low, int from_high, int to_low, int to_high)
@@ -350,11 +354,11 @@ int main(void)
 //  /* creation of cameraTask */
 //  cameraTaskHandle = osThreadNew(StartCameraTask, NULL, &cameraTask_attributes);
 //
-//  /* creation of commandTask */
-//  commandTaskHandle = osThreadNew(StartCommandTask, NULL, &commandTask_attributes);
+//  /* creation of calibrationTask */
+//  calibrationTaskHandle = osThreadNew(StartCalibrationTask, NULL, &calibrationTask_attributes);
 //
-//  /* creation of parseTask */
-//  parseTaskHandle = osThreadNew(StartParseTask, NULL, &parseTask_attributes);
+//  /* creation of gpsTask */
+//  gpsTaskHandle = osThreadNew(StartGPSTask, NULL, &gpsTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -986,12 +990,12 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
 	if (huart == &huart2)
 	{
-		parsegpsdata();
+		osThreadFlagsSet(gpsTaskHandle, 1);
 	}
 
 	if (huart == &huart3)
 	{
-		osThreadFlagsSet(parseTaskHandle, 1);
+		checkdata_();
 	}
 }
 
@@ -1014,6 +1018,7 @@ void StartDefaultTask(void *argument)
 	TM_BKPSRAM_Init();
 	init();
 	rtcbackup();
+
 	if (f_mount(&fs, (const TCHAR *)SDPath, 1) == FR_OK)
 	{
 		if (f_stat("2032.txt", &fno) != FR_OK)
@@ -1028,6 +1033,7 @@ void StartDefaultTask(void *argument)
 	}
 
 	bno055_init();
+	bno055_setCalibrationData(bno055_calData);
 
 	if (BME280_Config(OSRS_2, OSRS_16, OSRS_OFF, MODE_NORMAL, T_SB_0p5, IIR_16) == 0)
 	{
@@ -1041,7 +1047,7 @@ void StartDefaultTask(void *argument)
 #ifdef USE_SERVO_GIMBAL
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
 	HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-#else
+#else /* USE_SERVO_GIMBAL */
 	PID(&_PID, &input, &output, &Setpoint, 11, 0, 0, _PID_P_ON_E, _PID_CD_DIRECT);
 	PID_SetMode(&_PID, _PID_MODE_AUTOMATIC);
 	PID_SetSampleTime(&_PID, 1);
@@ -1052,7 +1058,7 @@ void StartDefaultTask(void *argument)
 	TIM1->CCR3 = 0;
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
 	HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-#endif
+#endif /* USE_SERVO_GIMBAL */
 
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 
@@ -1083,11 +1089,11 @@ void StartDefaultTask(void *argument)
 	/* creation of cameraTask */
 	cameraTaskHandle = osThreadNew(StartCameraTask, NULL, &cameraTask_attributes);
 
-	/* creation of commandTask */
-	commandTaskHandle = osThreadNew(StartCommandTask, NULL, &commandTask_attributes);
+	/* creation of calibrationTask */
+	calibrationTaskHandle = osThreadNew(StartCalibrationTask, NULL, &calibrationTask_attributes);
 
-	/* creation of parseTask */
-	parseTaskHandle = osThreadNew(StartParseTask, NULL, &parseTask_attributes);
+	/* creation of gpsTask */
+	gpsTaskHandle = osThreadNew(StartGPSTask, NULL, &gpsTask_attributes);
 
 	if (flagtel)
 	{
@@ -1426,6 +1432,8 @@ void StartTelemetryTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
+	  osDelay(SAMPLE_TIME_TELEMETRY_MS);
+
 	  if (f_mount(&fs, (const TCHAR *)SDPath, 1) == FR_OK)
 	  {
 		  f_open(&fil, "2032.txt", FA_OPEN_APPEND | FA_WRITE);
@@ -1441,8 +1449,6 @@ void StartTelemetryTask(void *argument)
 	  HAL_GPIO_TogglePin(LED4_GPIO_Port, LED4_Pin);
 
 	  osSemaphoreRelease(telemetrySemaphoreHandle);
-
-	  osDelay(SAMPLE_TIME_TELEMETRY_MS);
   }
   /* USER CODE END StartTelemetryTask */
 }
@@ -1498,53 +1504,92 @@ void StartCameraTask(void *argument)
   /* USER CODE END StartCameraTask */
 }
 
-/* USER CODE BEGIN Header_StartCommandTask */
+/* USER CODE BEGIN Header_StartCalibrationTask */
 /**
-* @brief Function implementing the commandTask thread.
+* @brief Function implementing the calibrationTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartCommandTask */
-void StartCommandTask(void *argument)
+/* USER CODE END Header_StartCalibrationTask */
+void StartCalibrationTask(void *argument)
 {
-  /* USER CODE BEGIN StartCommandTask */
+  /* USER CODE BEGIN StartCalibrationTask */
   /* Infinite loop */
-  for (;;)
+  for(;;)
   {
 	  osThreadFlagsWait(1, osFlagsWaitAny, osWaitForever);
+	  osKernelLock();
 
-	  if ((cocokan(3, "CX") == 2) && (cocokan(2, "2032") == 4)) CX();
-	  else if ((cocokan(3, "SIM") == 3) && (cocokan(2,"2032") == 4)) SIM();
-	  else if ((cocokan(3, "SIMP") == 4) && (cocokan(2,"2032") == 4)) SIMP();
-	  else if ((cocokan(3, "CAL") == 3) && (cocokan(2,"2032") == 4)) CAL();
-	  else if ((cocokan(3, "ST") == 2) && (cocokan(2,"2032") == 4)) ST();
-	  else if ((cocokan(3, "CR") == 2) && (cocokan(2,"2032") == 4)) CR();
-	  else if ((cocokan(3, "BCN") == 3) && (cocokan(2,"2032") == 4)) BCN();
-	  else if ((cocokan(3, "GB") == 2) && (cocokan(2,"2032") == 4)) GB();
-	  else if ((cocokan(3, "HS") == 2) && (cocokan(2,"2032") == 4)) HS();
-	  else if ((cocokan(3, "CAM") == 3) && (cocokan(2,"2032") == 4)) CAM();
+	  for (;;)
+	  {
+		  bno055_calStat = bno055_getCalibrationState();
+
+		  if (bno055_calStat.gyro == 3)
+			  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, SET);
+		  else
+			  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, RESET);
+
+		  if (bno055_calStat.accel == 3)
+			  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, SET);
+		  else
+			  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, RESET);
+
+		  if (bno055_calStat.mag == 3)
+			  HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, SET);
+		  else
+			  HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, RESET);
+
+		  if (bno055_calStat.sys == 3)
+			  HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, SET);
+		  else
+			  HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, RESET);
+
+		  if (bno055_calStat.gyro == 3 && bno055_calStat.mag == 3 && bno055_calStat.accel == 3)
+		  {
+			  bno055_calData = bno055_getCalibrationData();
+			  TM_BKPSRAM_WriteCalData(BNO055CAL_ADR, bno055_calData);
+			  bno055_setCalibrationData(bno055_calData);
+			  HAL_Delay(500);
+			  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin | LED2_Pin | LED3_Pin | LED4_Pin, RESET);
+			  HAL_Delay(500);
+			  HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, SET);
+
+			  uint8_t chip_id;
+			  HAL_I2C_Mem_Read(&hi2c3, BME280_ADDRESS, ID_REG, 1, &chip_id, 1, HAL_MAX_DELAY);
+			  if (chip_id == 0x60)
+			  {
+				  HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, SET);
+			  }
+			  break;
+		  }
+	  }
+
+	  osKernelUnlock();
   }
-  /* USER CODE END StartCommandTask */
+  /* USER CODE END StartCalibrationTask */
 }
 
-/* USER CODE BEGIN Header_StartParseTask */
+/* USER CODE BEGIN Header_StartGPSTask */
 /**
-* @brief Function implementing the parseTask thread.
+* @brief Function implementing the gpsTask thread.
 * @param argument: Not used
 * @retval None
 */
-/* USER CODE END Header_StartParseTask */
-void StartParseTask(void *argument)
+/* USER CODE END Header_StartGPSTask */
+void StartGPSTask(void *argument)
 {
-  /* USER CODE BEGIN StartParseTask */
+  /* USER CODE BEGIN StartGPSTask */
   /* Infinite loop */
   for(;;)
   {
 	  osThreadFlagsWait(1, osFlagsWaitAny, osWaitForever);
 
-	  checkdata_();
+	  if (lwgps_process(&gps, rxgps, strlen(rxgps)))
+	  {
+		  HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
+	  }
   }
-  /* USER CODE END StartParseTask */
+  /* USER CODE END StartGPSTask */
 }
 
 /**

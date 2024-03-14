@@ -92,11 +92,12 @@ void Error_Handler(void);
 /* USER CODE BEGIN Private defines */
 #define TEAM_ID			2032
 #define PACKETCOUNT_ADR 0x00
-#define REFALT_ADR		0x32
-#define STATEIND_ADR 	0x96
-#define FLAGTEL_ADR		0xC8
-#define HSDEPLOY_ADR 	0xFA
-#define PCDEPLOY_ADR 	0x12C
+#define REFALT_ADR		0x10
+#define STATEIND_ADR 	0x30
+#define FLAGTEL_ADR		0x38
+#define HSDEPLOY_ADR 	0x40
+#define PCDEPLOY_ADR 	0x48
+#define BNO055CAL_ADR	0x50
 
 #define FREERTOS_ENABLED
 /* USER CODE END Private defines */

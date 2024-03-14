@@ -38,8 +38,8 @@ uint16_t counting = 1;
 datatelemetri_t datatelemetri;
 uint8_t flagrefalt;
 
-bno055_calibration_state_t calStat;
-bno055_calibration_data_t calData;
+extern bno055_calibration_state_t bno055_calStat;
+extern bno055_calibration_data_t bno055_calData;
 extern bno055_vector_t bno055_euler, bno055_gyro;
 
 float Temperature, Pressure, Humidity, Spressure = 101325, refalt = 0, tempalt = 0;
@@ -109,6 +109,7 @@ void READRAM()
     flagtel = TM_BKPSRAM_Read8(FLAGTEL_ADR);
     datatelemetri.hsdeploy = TM_BKPSRAM_Read8(HSDEPLOY_ADR);
     datatelemetri.pcdeploy = TM_BKPSRAM_Read8(PCDEPLOY_ADR);
+    bno055_calData = TM_BKPSRAM_ReadCalData(BNO055CAL_ADR);
 }
 
 void RESETSRAM()
@@ -168,46 +169,6 @@ void bno055_init()
     bno055_assignI2C(&hi2c2);
     bno055_setup();
     bno055_setOperationModeNDOF();
-
-//    for (;;)
-//    {
-//		calStat = bno055_getCalibrationState();
-//
-//		if (calStat.gyro == 3)
-//			HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, SET);
-//		else
-//			HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, RESET);
-//
-//		if (calStat.accel == 3)
-//			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, SET);
-//		else
-//			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, RESET);
-//
-//		if (calStat.mag == 3)
-//			HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, SET);
-//		else
-//			HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, RESET);
-//
-//		if (calStat.sys == 3)
-//			HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, SET);
-//		else
-//			HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, RESET);
-//
-//		if (calStat.gyro == 3 && calStat.mag == 3 && calStat.accel == 3)
-//		{
-//			calData = bno055_getCalibrationData();
-//			bno055_setCalibrationData(calData);
-//			break;
-//		}
-//    }
-
-    osDelay(500);
-    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, RESET);
-    HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, RESET);
-    HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, RESET);
-    HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, RESET);
-    osDelay(500);
-
     HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, SET);
 }
 
@@ -359,7 +320,7 @@ void CX()
     else if ((commandbuff[0] == 'O') && (commandbuff[1] == 'F'))
     {
     	HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, RESET);
-    	osSemaphoreAcquire(telemetrySemaphoreHandle, osWaitForever);
+    	osSemaphoreAcquire(telemetrySemaphoreHandle, 0);
 		flagtel = 0;
 		strcpy(datatelemetri.echocmd, "CXOFF");
     }

@@ -39,6 +39,10 @@ void TrimRead(void);
  */
 void BME280_Measure (void);
 
+#define SUPPORT_64BIT 1
+//#define SUPPORT_32BIT 1
+
+#define BME280_ADDRESS 0xEC  // SDIO ke ground, 7 bit address = 0x76 and 8 bit address = 0x76<<1 = 0xEC
 
 // Oversampling definitions
 #define OSRS_OFF    	0x00

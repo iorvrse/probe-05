@@ -158,6 +158,9 @@
 #define BNO055_GYR_AM_THRESH 0x1E
 #define BNO055_GYR_AM_SET 0x1F
 
+#define TM_BKPSRAM_ReadCalData(address)			(*(__IO bno055_calibration_data_t *) (BKPSRAM_BASE + address))
+#define TM_BKPSRAM_WriteCalData(address, value)	(*(__IO bno055_calibration_data_t *) (BKPSRAM_BASE + (address)) = (value))
+
 enum bno055_system_status_t {
   BNO055_SYSTEM_STATUS_IDLE = 0x00,
   BNO055_SYSTEM_STATUS_SYSTEM_ERROR = 0x01,

@@ -1,6 +1,7 @@
 #include "bno055.h"
 #include <string.h>
 #include "main.h"
+#include "tm_stm32f4_bkpsram.h"
 #ifdef FREERTOS_ENABLED
 #include "FreeRTOS.h"
 #include "task.h"
@@ -226,7 +227,11 @@ bno055_calibration_data_t bno055_getCalibrationData() {
   bno055_calibration_data_t calData;
   uint8_t buffer[22];
   bno055_opmode_t operationMode = bno055_getOperationMode();
-  bno055_setOperationModeConfig();
+//  bno055_setOperationModeConfig();
+  bno055_writeData(BNO055_OPR_MODE, BNO055_OPERATION_MODE_CONFIG);
+  HAL_Delay(19);
+//  osDelay(19);
+
   bno055_setPage(0);
 
   bno055_readData(BNO055_ACC_OFFSET_X_LSB, buffer, 22);
@@ -238,7 +243,10 @@ bno055_calibration_data_t bno055_getCalibrationData() {
   memcpy(&calData.radius.accel, buffer + 18, 2);
   memcpy(&calData.radius.mag, buffer + 20, 2);
 
-  bno055_setOperationMode(operationMode);
+//  bno055_setOperationMode(operationMode);
+  bno055_writeData(BNO055_OPR_MODE, operationMode);
+  HAL_Delay(19);
+//  osDelay(19);
 
   return calData;
 }
@@ -246,7 +254,11 @@ bno055_calibration_data_t bno055_getCalibrationData() {
 void bno055_setCalibrationData(bno055_calibration_data_t calData) {
   uint8_t buffer[22];
   bno055_opmode_t operationMode = bno055_getOperationMode();
-  bno055_setOperationModeConfig();
+//  bno055_setOperationModeConfig();
+  bno055_writeData(BNO055_OPR_MODE, BNO055_OPERATION_MODE_CONFIG);
+  HAL_Delay(19);
+//  osDelay(19);
+
   bno055_setPage(0);
 
   // Assumes litle endian processor
@@ -261,7 +273,10 @@ void bno055_setCalibrationData(bno055_calibration_data_t calData) {
     bno055_writeData(BNO055_ACC_OFFSET_X_LSB+i, buffer[i]);
   }
 
-  bno055_setOperationMode(operationMode);
+//  bno055_setOperationMode(operationMode);
+  bno055_writeData(BNO055_OPR_MODE, operationMode);
+  HAL_Delay(19);
+//  osDelay(19);
 }
 
 bno055_vector_t bno055_getVector(uint8_t vec) {
