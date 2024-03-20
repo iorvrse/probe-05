@@ -18,6 +18,7 @@ void rtcbackup();
 void ADC_measure();
 uint8_t buatcs(char dat_[]);
 float pressuretoalt(float press);
+void state();
 void CX();
 void BCN();
 void ST();

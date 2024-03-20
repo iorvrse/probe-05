@@ -54,9 +54,8 @@ cam_t camera;
 #define SAMPLE_TIME_EULER_MS 		10
 #define SAMPLE_TIME_GYRO_MS 		10
 #define SAMPLE_TIME_BARO_MS 		40
-#define SAMPLE_TIME_STATE_MS		50
 #define SAMPLE_TIME_RTC_MS 			1000
-#define SAMPLE_TIME_DATA_MS			500
+#define SAMPLE_TIME_DATA_MS			1000
 #define SAMPLE_TIME_TELEMETRY_MS	1000
 
 /* USER CODE END PM */
@@ -96,78 +95,78 @@ const osThreadAttr_t defaultTask_attributes = {
 osThreadId_t gimbalTaskHandle;
 const osThreadAttr_t gimbalTask_attributes = {
   .name = "gimbalTask",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for gyroscopeTask */
 osThreadId_t gyroscopeTaskHandle;
 const osThreadAttr_t gyroscopeTask_attributes = {
   .name = "gyroscopeTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal3,
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh,
 };
 /* Definitions for eulerTask */
 osThreadId_t eulerTaskHandle;
 const osThreadAttr_t eulerTask_attributes = {
   .name = "eulerTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal7,
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityHigh1,
 };
 /* Definitions for rtcTask */
 osThreadId_t rtcTaskHandle;
 const osThreadAttr_t rtcTask_attributes = {
   .name = "rtcTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityNormal,
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for barometerTask */
 osThreadId_t barometerTaskHandle;
 const osThreadAttr_t barometerTask_attributes = {
   .name = "barometerTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityNormal5,
-};
-/* Definitions for stateTask */
-osThreadId_t stateTaskHandle;
-const osThreadAttr_t stateTask_attributes = {
-  .name = "stateTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal,
-};
-/* Definitions for getdataTask */
-osThreadId_t getdataTaskHandle;
-const osThreadAttr_t getdataTask_attributes = {
-  .name = "getdataTask",
   .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityAboveNormal4,
+  .priority = (osPriority_t) osPriorityAboveNormal,
 };
 /* Definitions for telemetryTask */
 osThreadId_t telemetryTaskHandle;
 const osThreadAttr_t telemetryTask_attributes = {
   .name = "telemetryTask",
-  .stack_size = 256 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityRealtime5,
 };
 /* Definitions for cameraTask */
 osThreadId_t cameraTaskHandle;
 const osThreadAttr_t cameraTask_attributes = {
   .name = "cameraTask",
-  .stack_size = 128 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for calibrationTask */
 osThreadId_t calibrationTaskHandle;
 const osThreadAttr_t calibrationTask_attributes = {
   .name = "calibrationTask",
-  .stack_size = 128 * 4,
+  .stack_size = 512 * 4,
   .priority = (osPriority_t) osPriorityRealtime6,
+};
+/* Definitions for adcTask */
+osThreadId_t adcTaskHandle;
+const osThreadAttr_t adcTask_attributes = {
+  .name = "adcTask",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityLow,
 };
 /* Definitions for gpsTask */
 osThreadId_t gpsTaskHandle;
 const osThreadAttr_t gpsTask_attributes = {
   .name = "gpsTask",
-  .stack_size = 256 * 4,
-  .priority = (osPriority_t) osPriorityHigh,
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityLow,
+};
+/* Definitions for getdataTask */
+osThreadId_t getdataTaskHandle;
+const osThreadAttr_t getdataTask_attributes = {
+  .name = "getdataTask",
+  .stack_size = 512 * 4,
+  .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* Definitions for telemetrySemaphore */
 osSemaphoreId_t telemetrySemaphoreHandle;
@@ -233,12 +232,12 @@ void StartGyroscopeTask(void *argument);
 void StartEulerTask(void *argument);
 void StartRTCTask(void *argument);
 void StartBarometerTask(void *argument);
-void StartStateTask(void *argument);
-void StartGetDataTask(void *argument);
 void StartTelemetryTask(void *argument);
 void StartCameraTask(void *argument);
 void StartCalibrationTask(void *argument);
+void StartADCTask(void *argument);
 void StartGPSTask(void *argument);
+void StartGetDataTask(void *argument);
 
 /* USER CODE BEGIN PFP */
 int map(int value, int from_low, int from_high, int to_low, int to_high)
@@ -342,12 +341,6 @@ int main(void)
 //  /* creation of barometerTask */
 //  barometerTaskHandle = osThreadNew(StartBarometerTask, NULL, &barometerTask_attributes);
 //
-//  /* creation of stateTask */
-//  stateTaskHandle = osThreadNew(StartStateTask, NULL, &stateTask_attributes);
-//
-//  /* creation of getdataTask */
-//  getdataTaskHandle = osThreadNew(StartGetDataTask, NULL, &getdataTask_attributes);
-//
 //  /* creation of telemetryTask */
 //  telemetryTaskHandle = osThreadNew(StartTelemetryTask, NULL, &telemetryTask_attributes);
 //
@@ -357,8 +350,14 @@ int main(void)
 //  /* creation of calibrationTask */
 //  calibrationTaskHandle = osThreadNew(StartCalibrationTask, NULL, &calibrationTask_attributes);
 //
+//  /* creation of adcTask */
+//  adcTaskHandle = osThreadNew(StartADCTask, NULL, &adcTask_attributes);
+//
 //  /* creation of gpsTask */
 //  gpsTaskHandle = osThreadNew(StartGPSTask, NULL, &gpsTask_attributes);
+//
+//  /* creation of getdataTask */
+//  getdataTaskHandle = osThreadNew(StartGetDataTask, NULL, &getdataTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -983,7 +982,8 @@ static void MX_GPIO_Init(void)
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef *hadc)
 {
-	ADC_measure();
+	osThreadFlagsSet(adcTaskHandle, 1);
+//	ADC_measure();
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -991,6 +991,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 	if (huart == &huart2)
 	{
 		osThreadFlagsSet(gpsTaskHandle, 1);
+//		parsegpsdata();
 	}
 
 	if (huart == &huart3)
@@ -1062,35 +1063,35 @@ void StartDefaultTask(void *argument)
 
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 
-	/* creation of gimbalTask */
-	gimbalTaskHandle = osThreadNew(StartGimbalTask, NULL, &gimbalTask_attributes);
-
-	/* creation of gyroscopeTask */
-	gyroscopeTaskHandle = osThreadNew(StartGyroscopeTask, NULL, &gyroscopeTask_attributes);
-
-	/* creation of eulerTask */
-	eulerTaskHandle = osThreadNew(StartEulerTask, NULL, &eulerTask_attributes);
-
-	/* creation of rtcTask */
-	rtcTaskHandle = osThreadNew(StartRTCTask, NULL, &rtcTask_attributes);
-
-	/* creation of barometerTask */
-	barometerTaskHandle = osThreadNew(StartBarometerTask, NULL, &barometerTask_attributes);
-
-	/* creation of stateTask */
-	stateTaskHandle = osThreadNew(StartStateTask, NULL, &stateTask_attributes);
-
-	/* creation of getdataTask */
-	getdataTaskHandle = osThreadNew(StartGetDataTask, NULL, &getdataTask_attributes);
+	/* creation of calibrationTask */
+	calibrationTaskHandle = osThreadNew(StartCalibrationTask, NULL, &calibrationTask_attributes);
 
 	/* creation of telemetryTask */
 	telemetryTaskHandle = osThreadNew(StartTelemetryTask, NULL, &telemetryTask_attributes);
 
+	/* creation of eulerTask */
+	eulerTaskHandle = osThreadNew(StartEulerTask, NULL, &eulerTask_attributes);
+
+	/* creation of gyroscopeTask */
+	gyroscopeTaskHandle = osThreadNew(StartGyroscopeTask, NULL, &gyroscopeTask_attributes);
+
+	/* creation of barometerTask */
+	barometerTaskHandle = osThreadNew(StartBarometerTask, NULL, &barometerTask_attributes);
+
+	/* creation of gimbalTask */
+	gimbalTaskHandle = osThreadNew(StartGimbalTask, NULL, &gimbalTask_attributes);
+
+	/* creation of getdataTask */
+	getdataTaskHandle = osThreadNew(StartGetDataTask, NULL, &getdataTask_attributes);
+
+	/* creation of rtcTask */
+	rtcTaskHandle = osThreadNew(StartRTCTask, NULL, &rtcTask_attributes);
+
 	/* creation of cameraTask */
 	cameraTaskHandle = osThreadNew(StartCameraTask, NULL, &cameraTask_attributes);
 
-	/* creation of calibrationTask */
-	calibrationTaskHandle = osThreadNew(StartCalibrationTask, NULL, &calibrationTask_attributes);
+	/* creation of adcTask */
+	adcTaskHandle = osThreadNew(StartADCTask, NULL, &adcTask_attributes);
 
 	/* creation of gpsTask */
 	gpsTaskHandle = osThreadNew(StartGPSTask, NULL, &gpsTask_attributes);
@@ -1138,7 +1139,7 @@ void StartGimbalTask(void *argument)
 		  servogerak(&htim3, TIM_CHANNEL_1, 180);
 		  servogerak(&htim3, TIM_CHANNEL_3, bno055_euler.x - 180);
 	  }
-#else
+#else /* USE_SERVO_GIMBAL */
 	  CountENC = getCumulativePosition();
 	  Rev = CountENC % 4095;
 	  Current_Angle = map(Rev, 0, 4095, 0, 359);
@@ -1157,7 +1158,7 @@ void StartGimbalTask(void *argument)
 		  TIM1->CCR3 = (uint32_t)output;
 	  else
 		  TIM1->CCR2 = (uint32_t)abs(output);
-#endif
+#endif /* USE_SERVO_GIMBAL */
 
 	  osSemaphoreRelease(gimbalSemaphoreHandle);
 
@@ -1179,7 +1180,7 @@ void StartGyroscopeTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  bno055_gyro = bno055_getVectorGyroscope();
+	  datatelemetri.rot_z = bno055_getRotationZ();
 
 	  osDelay(SAMPLE_TIME_GYRO_MS);
   }
@@ -1199,7 +1200,10 @@ void StartEulerTask(void *argument)
   /* Infinite loop */
   for(;;)
   {
-	  bno055_euler = bno055_getVectorEuler();
+	  bno055_euler = bno055_getEuler();
+	  datatelemetri.heading = bno055_euler.x;
+	  datatelemetri.tilt_x = bno055_euler.y;
+	  datatelemetri.tilt_y = bno055_euler.z;
 
 	  osDelay(SAMPLE_TIME_EULER_MS);
   }
@@ -1248,175 +1252,29 @@ void StartBarometerTask(void *argument)
   for(;;)
   {
 	  BME280_Measure();
-
-	  osDelay(SAMPLE_TIME_BARO_MS);
-  }
-  /* USER CODE END StartBarometerTask */
-}
-
-/* USER CODE BEGIN Header_StartStateTask */
-/**
-* @brief Function implementing the stateTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartStateTask */
-void StartStateTask(void *argument)
-{
-  /* USER CODE BEGIN StartStateTask */
-  /* Infinite loop */
-  for(;;)
-  {
-	  uint8_t valid = 0;
-	  switch (cansatState)
-	  {
-	  	  case LAUNCH_WAIT:
-	  		  strcpy(datatelemetri.state, "LAUNCH_WAIT");
-			  if (datatelemetri.alt > 100)
-			  {
-				  cansatState = ASCENT;
-				  TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
-			  }
-			  break;
-
-		  case ASCENT:
-			  strcpy(datatelemetri.state, "ASCENT");
-			  if ((datatelemetri.alt - tempalt) < 0)
-			  {
-				  valid++;
-				  if (valid > 4)
-				  {
-					  valid = 0;
-
-					  datatelemetri.hsdeploy = 'P';
-					  datatelemetri.pcdeploy = 'N';
-					  TM_BKPSRAM_Write8(HSDEPLOY_ADR, datatelemetri.hsdeploy);
-					  TM_BKPSRAM_Write8(PCDEPLOY_ADR, datatelemetri.pcdeploy);
-
-					  camera = MAIN_CAM;
-					  osThreadFlagsSet(cameraTaskHandle, 1);
-					  osThreadFlagsSet(gimbalTaskHandle, 1);
-
-					  cansatState = ROCKET_SEPARATION;
-					  TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
-				  }
-			  }
-			  break;
-
-		  case ROCKET_SEPARATION:
-			  strcpy(datatelemetri.state, "ROCKET_SEPARATION");
-			  if (datatelemetri.alt <= 700)
-			  {
-				  valid++;
-				  if (valid > 4)
-				  {
-					  valid = 0;
-
-					  datatelemetri.hsdeploy = 'P';
-					  datatelemetri.pcdeploy = 'N';
-					  TM_BKPSRAM_Write8(HSDEPLOY_ADR, datatelemetri.hsdeploy);
-					  TM_BKPSRAM_Write8(PCDEPLOY_ADR, datatelemetri.pcdeploy);
-
-					  cansatState = DESCENT;
-					  TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
-				  }
-			  }
-			  break;
-
-		  case DESCENT:
-			  strcpy(datatelemetri.state, "DESCENT");
-			  if (datatelemetri.alt <= 150)
-			  {
-				  servogerak(&htim4, TIM_CHANNEL_1, 135);
-			  }
-			  else if (datatelemetri.alt <= 100)
-			  {
-				  datatelemetri.hsdeploy = 'P';
-				  datatelemetri.pcdeploy = 'C';
-				  TM_BKPSRAM_Write8(HSDEPLOY_ADR, datatelemetri.hsdeploy);
-				  TM_BKPSRAM_Write8(PCDEPLOY_ADR, datatelemetri.pcdeploy);
-
-				  cansatState = HS_RELEASE;
-				  TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
-			  }
-			  break;
-
-		  case HS_RELEASE:
-			  strcpy(datatelemetri.state, "HS_RELEASE");
-			  if (datatelemetri.alt < 13)
-			  {
-				  cansatState = LANDED;
-				  TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
-			  }
-			  break;
-
-		  case LANDED:
-			  osSemaphoreAcquire(gimbalSemaphoreHandle, osWaitForever);
-			  osSemaphoreAcquire(telemetryTaskHandle, osWaitForever);
-
-			  camera = CAM_OFF;
-			  osThreadFlagsSet(cameraTaskHandle, 1);
-
-			  HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
-
-			  strcpy(datatelemetri.state, "LANDED");
-			  TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
-			  break;
-	  }
-
-	  osDelay(SAMPLE_TIME_STATE_MS);
-  }
-  /* USER CODE END StartStateTask */
-}
-
-/* USER CODE BEGIN Header_StartGetDataTask */
-/**
-* @brief Function implementing the getdataTask thread.
-* @param argument: Not used
-* @retval None
-*/
-/* USER CODE END Header_StartGetDataTask */
-void StartGetDataTask(void *argument)
-{
-  /* USER CODE BEGIN StartGetDataTask */
-  /* Infinite loop */
-  for(;;)
-  {
-	  datatelemetri.packetcount = counting;
 	  datatelemetri.temp = Temperature;
-	  tempalt = datatelemetri.alt;
 	  switch (flagsim)
 	  {
-	  	  case 2:
-	  		  datatelemetri.alt = pressuretoalt(Spressure / 100);
-	  		  datatelemetri.barpress = Spressure / 1000;
-	  		  datatelemetri.alt -= refalt;
-	  		  break;
-	  	  default:
-	  		  datatelemetri.alt = pressuretoalt(Pressure / 100);
-	  		  datatelemetri.barpress = Pressure / 1000;
-	  		  datatelemetri.alt -= refalt;
-	  		  break;
+		  case 2:
+			  datatelemetri.alt = pressuretoalt(Spressure / 100);
+			  datatelemetri.barpress = Spressure / 1000;
+			  datatelemetri.alt -= refalt;
+			  break;
+		  default:
+			  datatelemetri.alt = pressuretoalt(Pressure / 100);
+			  datatelemetri.barpress = Pressure / 1000;
+			  datatelemetri.alt -= refalt;
+			  break;
 	  }
 	  if (datatelemetri.alt < 0)
 	  {
 		  datatelemetri.alt = 0;
 	  }
-	  datatelemetri.tilt_x = bno055_euler.y;
-	  datatelemetri.tilt_y = bno055_euler.z;
-	  datatelemetri.heading = bno055_euler.x;
-	  datatelemetri.rot_z = bno055_gyro.z;
-	  sprintf(datatelemetri.telemetribuff, "2032,%c%c:%c%c:%c%c,%d,%c,%s,%.1f,%.2f,%c,%c,%.1f,%.1f,%.1f,%c%c:%c%c:%c%c,%.1f,%.4f,%.4f,%d,%.2f,%.2f,%.1f,%s,,%.1f,",
-			  datatelemetri.jam[0], datatelemetri.jam[1], datatelemetri.menit[0], datatelemetri.menit[1], datatelemetri.detik[0], datatelemetri.detik[1],
-			  datatelemetri.packetcount, datatelemetri.fmode, datatelemetri.state, datatelemetri.alt, datatelemetri.airspeed, datatelemetri.hsdeploy, datatelemetri.pcdeploy,
-			  datatelemetri.temp, datatelemetri.voltage, datatelemetri.barpress, gpsjam[0], gpsjam[1], gpsmenit[0], gpsmenit[1], gpsdetik[0], gpsdetik[1],
-			  gpsalt, gpslat, gpslong, gpssat, datatelemetri.tilt_x, datatelemetri.tilt_y, datatelemetri.rot_z, datatelemetri.echocmd, datatelemetri.heading);
-	  uint8_t csh = ~buatcs(datatelemetri.telemetribuff);
-	  sprintf(datatelemetri.telemetritotal,"%s%d\r\n", datatelemetri.telemetribuff, csh);
+	  state();
 
-	  osDelay(SAMPLE_TIME_DATA_MS);
+	  osDelay(SAMPLE_TIME_BARO_MS);
   }
-  /* USER CODE END StartGetDataTask */
+  /* USER CODE END StartBarometerTask */
 }
 
 /* USER CODE BEGIN Header_StartTelemetryTask */
@@ -1569,6 +1427,26 @@ void StartCalibrationTask(void *argument)
   /* USER CODE END StartCalibrationTask */
 }
 
+/* USER CODE BEGIN Header_StartADCTask */
+/**
+* @brief Function implementing the adcTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartADCTask */
+void StartADCTask(void *argument)
+{
+  /* USER CODE BEGIN StartADCTask */
+  /* Infinite loop */
+  for(;;)
+  {
+	  osThreadFlagsWait(1, osFlagsWaitAny, osWaitForever);
+	  ADC_measure();
+	  osDelay(250);
+  }
+  /* USER CODE END StartADCTask */
+}
+
 /* USER CODE BEGIN Header_StartGPSTask */
 /**
 * @brief Function implementing the gpsTask thread.
@@ -1583,13 +1461,37 @@ void StartGPSTask(void *argument)
   for(;;)
   {
 	  osThreadFlagsWait(1, osFlagsWaitAny, osWaitForever);
-
-	  if (lwgps_process(&gps, rxgps, strlen(rxgps)))
-	  {
-		  HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
-	  }
+	  parsegpsdata();
   }
   /* USER CODE END StartGPSTask */
+}
+
+/* USER CODE BEGIN Header_StartGetDataTask */
+/**
+* @brief Function implementing the getdataTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartGetDataTask */
+void StartGetDataTask(void *argument)
+{
+  /* USER CODE BEGIN StartGetDataTask */
+  /* Infinite loop */
+  for(;;)
+  {
+	  tempalt = datatelemetri.alt;
+	  datatelemetri.packetcount = counting;
+	  sprintf(datatelemetri.telemetribuff, "2032,%c%c:%c%c:%c%c,%d,%c,%s,%.1f,%.2f,%c,%c,%.1f,%.1f,%.1f,%c%c:%c%c:%c%c,%.1f,%.4f,%.4f,%d,%.2f,%.2f,%.1f,%s,,%.1f,",
+			  datatelemetri.jam[0], datatelemetri.jam[1], datatelemetri.menit[0], datatelemetri.menit[1], datatelemetri.detik[0], datatelemetri.detik[1],
+			  datatelemetri.packetcount, datatelemetri.fmode, datatelemetri.state, datatelemetri.alt, datatelemetri.airspeed, datatelemetri.hsdeploy, datatelemetri.pcdeploy,
+			  datatelemetri.temp, datatelemetri.voltage, datatelemetri.barpress, gpsjam[0], gpsjam[1], gpsmenit[0], gpsmenit[1], gpsdetik[0], gpsdetik[1],
+			  gpsalt, gpslat, gpslong, gpssat, datatelemetri.tilt_x, datatelemetri.tilt_y, datatelemetri.rot_z, datatelemetri.echocmd, datatelemetri.heading);
+	  uint8_t csh = ~buatcs(datatelemetri.telemetribuff);
+	  sprintf(datatelemetri.telemetritotal,"%s%d\r\n", datatelemetri.telemetribuff, csh);
+
+	  osDelay(SAMPLE_TIME_DATA_MS);
+  }
+  /* USER CODE END StartGetDataTask */
 }
 
 /**

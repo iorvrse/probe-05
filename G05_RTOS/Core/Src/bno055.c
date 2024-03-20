@@ -31,74 +31,15 @@ void bno055_delay(int time) {
 
 void bno055_writeData(uint8_t reg, uint8_t data) {
   uint8_t txdata[2] = {reg, data};
-  HAL_I2C_Master_Transmit(_bno055_i2c_port, BNO055_I2C_ADDR << 1,
-                                   txdata, sizeof(txdata), 10);
-//  if (status == HAL_OK) {
-//    return;
-//  }
-//
-//  if (status == HAL_ERROR) {
-//    printf("HAL_I2C_Master_Transmit HAL_ERROR\r\n");
-//  } else if (status == HAL_TIMEOUT) {
-//    printf("HAL_I2C_Master_Transmit HAL_TIMEOUT\r\n");
-//  } else if (status == HAL_BUSY) {
-//    printf("HAL_I2C_Master_Transmit HAL_BUSY\r\n");
-//  } else {
-//    printf("Unknown status data %d", status);
-//  }
-//
-//  uint32_t error = HAL_I2C_GetError(_bno055_i2c_port);
-//  if (error == HAL_I2C_ERROR_NONE) {
-//    return;
-//  } else if (error == HAL_I2C_ERROR_BERR) {
-//    printf("HAL_I2C_ERROR_BERR\r\n");
-//  } else if (error == HAL_I2C_ERROR_ARLO) {
-//    printf("HAL_I2C_ERROR_ARLO\r\n");
-//  } else if (error == HAL_I2C_ERROR_AF) {
-//    printf("HAL_I2C_ERROR_AF\r\n");
-//  } else if (error == HAL_I2C_ERROR_OVR) {
-//    printf("HAL_I2C_ERROR_OVR\r\n");
-//  } else if (error == HAL_I2C_ERROR_DMA) {
-//    printf("HAL_I2C_ERROR_DMA\r\n");
-//  } else if (error == HAL_I2C_ERROR_TIMEOUT) {
-//    printf("HAL_I2C_ERROR_TIMEOUT\r\n");
-//  }
-//
-//  HAL_I2C_StateTypeDef state = HAL_I2C_GetState(_bno055_i2c_port);
-//  if (state == HAL_I2C_STATE_RESET) {
-//    printf("HAL_I2C_STATE_RESET\r\n");
-//  } else if (state == HAL_I2C_STATE_READY) {
-//    printf("HAL_I2C_STATE_RESET\r\n");
-//  } else if (state == HAL_I2C_STATE_BUSY) {
-//    printf("HAL_I2C_STATE_BUSY\r\n");
-//  } else if (state == HAL_I2C_STATE_BUSY_TX) {
-//    printf("HAL_I2C_STATE_BUSY_TX\r\n");
-//  } else if (state == HAL_I2C_STATE_BUSY_RX) {
-//    printf("HAL_I2C_STATE_BUSY_RX\r\n");
-//  } else if (state == HAL_I2C_STATE_LISTEN) {
-//    printf("HAL_I2C_STATE_LISTEN\r\n");
-//  } else if (state == HAL_I2C_STATE_BUSY_TX_LISTEN) {
-//    printf("HAL_I2C_STATE_BUSY_TX_LISTEN\r\n");
-//  } else if (state == HAL_I2C_STATE_BUSY_RX_LISTEN) {
-//    printf("HAL_I2C_STATE_BUSY_RX_LISTEN\r\n");
-//  } else if (state == HAL_I2C_STATE_ABORT) {
-//    printf("HAL_I2C_STATE_ABORT\r\n");
-//  } else if (state == HAL_I2C_STATE_TIMEOUT) {
-//    printf("HAL_I2C_STATE_TIMEOUT\r\n");
-//  } else if (state == HAL_I2C_STATE_ERROR) {
-//    printf("HAL_I2C_STATE_ERROR\r\n");
-//  }
-  // while (HAL_I2C_GetState(_bno055_i2c_port) != HAL_I2C_STATE_READY) {}
-  // return;
+  HAL_I2C_Master_Transmit(_bno055_i2c_port, BNO055_I2C_ADDR << 1, txdata, 2, HAL_MAX_DELAY);
 }
 
 void bno055_readData(uint8_t reg, uint8_t *data, uint8_t len) {
-  HAL_I2C_Master_Transmit(_bno055_i2c_port, BNO055_I2C_ADDR << 1, &reg, 1,
-                          HAL_MAX_DELAY);
-  HAL_I2C_Master_Receive(_bno055_i2c_port, BNO055_I2C_ADDR << 1, data, len,
-                         HAL_MAX_DELAY);
-  // HAL_I2C_Mem_Read(_bno055_i2c_port, BNO055_I2C_ADDR_LO<<1, reg,
-  // I2C_MEMADD_SIZE_8BIT, data, len, 100);
+//  HAL_I2C_Master_Transmit(_bno055_i2c_port, BNO055_I2C_ADDR << 1, &reg, 1,
+//                          HAL_MAX_DELAY);
+//  HAL_I2C_Master_Receive(_bno055_i2c_port, BNO055_I2C_ADDR << 1, data, len,
+//                         HAL_MAX_DELAY);
+   HAL_I2C_Mem_Read(_bno055_i2c_port, BNO055_I2C_ADDR_LO<<1, reg, I2C_MEMADD_SIZE_8BIT, data, len, HAL_MAX_DELAY);
 }
 
 void bno055_setPage(uint8_t page) { bno055_writeData(BNO055_PAGE_ID, page); }
@@ -111,11 +52,7 @@ bno055_opmode_t bno055_getOperationMode() {
 
 void bno055_setOperationMode(bno055_opmode_t mode) {
   bno055_writeData(BNO055_OPR_MODE, mode);
-  if (mode == BNO055_OPERATION_MODE_CONFIG) {
-    bno055_delay(19);
-  } else {
-    bno055_delay(7);
-  }
+  bno055_delay(19);
 }
 
 void bno055_setOperationModeConfig() {
@@ -350,4 +287,30 @@ void bno055_setAxisMap(bno055_axis_map_t axis) {
   uint8_t axisMapSign = (axis.x_sign << 2) | (axis.y_sign << 1) | (axis.z_sign);
   bno055_writeData(BNO055_AXIS_MAP_CONFIG, axisRemap);
   bno055_writeData(BNO055_AXIS_MAP_SIGN, axisMapSign);
+}
+
+bno055_vector_t bno055_getEuler()
+{
+	uint8_t buffer[6];
+
+	bno055_readData(BNO055_VECTOR_EULER, buffer, 6);
+
+	bno055_vector_t xyz = {.w = 0, .x = 0, .y = 0, .z = 0};
+
+	xyz.x = (int16_t)((buffer[1] << 8) | buffer[0]) / 16.0;
+	xyz.y = (int16_t)((buffer[3] << 8) | buffer[2]) / 16.0;
+	xyz.z = (int16_t)((buffer[5] << 8) | buffer[4]) / 16.0;
+
+	return xyz;
+}
+
+float bno055_getRotationZ()
+{
+	float rot_z;
+	uint8_t buffer[2];
+
+	bno055_readData(BNO055_GYR_DATA_Z_LSB, buffer, 2);
+	rot_z = (int16_t)((buffer[1] << 8) | buffer[0]) / 16.0;
+
+	return rot_z;
 }

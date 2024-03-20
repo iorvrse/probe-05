@@ -64,6 +64,7 @@ float adc_avg;
 uint32_t dataadc[2];
 
 char commandbuff[15];
+uint8_t valid = 0;
 
 void init()
 {
@@ -86,26 +87,32 @@ void init()
 void READRAM()
 {
     counting = TM_BKPSRAM_Read16(PACKETCOUNT_ADR);
-    switch(TM_BKPSRAM_Read8(STATEIND_ADR))
+    refalt = TM_BKPSRAM_ReadFloat(REFALT_ADR);
+    cansatState = TM_BKPSRAM_Read8(STATEIND_ADR);
+    switch(cansatState)
     {
-		case 0:
+    	case LAUNCH_WAIT:
+			strcpy(datatelemetri.state, "LAUNCH_WAIT");
+			break;
+		case ASCENT:
 			strcpy(datatelemetri.state, "ASCENT");
 			break;
-		case 1:
+		case ROCKET_SEPARATION:
 			strcpy(datatelemetri.state, "ROCKET_SEPARATION");
 			break;
-		case 2:
+		case DESCENT:
 			strcpy(datatelemetri.state, "DESCENT");
 			break;
-		case 3:
+		case HS_RELEASE:
 			strcpy(datatelemetri.state, "HS_RELEASE");
 			break;
-		case 4:
+		case LANDED:
+			strcpy(datatelemetri.state, "LANDED");
+			break;
+		case DONE:
 			strcpy(datatelemetri.state, "LANDED");
 			break;
     }
-    refalt = TM_BKPSRAM_ReadFloat(REFALT_ADR);
-    cansatState = TM_BKPSRAM_Read8(STATEIND_ADR);
     flagtel = TM_BKPSRAM_Read8(FLAGTEL_ADR);
     datatelemetri.hsdeploy = TM_BKPSRAM_Read8(HSDEPLOY_ADR);
     datatelemetri.pcdeploy = TM_BKPSRAM_Read8(PCDEPLOY_ADR);
@@ -181,8 +188,9 @@ void gpsinit()
 void parsegpsdata()
 {
 	if (lwgps_process(&gps, rxgps, strlen(rxgps)))
+	{
 		HAL_GPIO_TogglePin(LED3_GPIO_Port, LED3_Pin);
-	HAL_UART_Receive_DMA(&huart2, (uint8_t *)rxgps, sizeof(rxgps));
+	}
 }
 
 void ADC_measure()
@@ -268,6 +276,115 @@ float pressuretoalt(float press)
     	hasil = 0;
     }
     return hasil;
+}
+
+void state()
+{
+	 switch (cansatState)
+	 {
+	 	 case LAUNCH_WAIT:
+	 		 strcpy(datatelemetri.state, "LAUNCH_WAIT");
+	 		 if (datatelemetri.alt > 100)
+	 		 {
+	 			 cansatState = ASCENT;
+	 			 TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
+	 		 }
+	 		 break;
+
+	 	 case ASCENT:
+	 		 strcpy(datatelemetri.state, "ASCENT");
+	 		 if ((datatelemetri.alt - tempalt) < 0)
+	 		 {
+	 			 valid++;
+	 			 if (valid > 4)
+	 			 {
+	 				 valid = 0;
+
+	 				 datatelemetri.hsdeploy = 'P';
+	 				 datatelemetri.pcdeploy = 'N';
+	 				 TM_BKPSRAM_Write8(HSDEPLOY_ADR, datatelemetri.hsdeploy);
+	 				 TM_BKPSRAM_Write8(PCDEPLOY_ADR, datatelemetri.pcdeploy);
+
+	 				 camera = MAIN_CAM;
+	 				 osThreadFlagsSet(cameraTaskHandle, 1);
+	 				 osSemaphoreRelease(gimbalTaskHandle);
+
+	 				 cansatState = ROCKET_SEPARATION;
+	 				 TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
+	 			 }
+	 		 }
+	 		 break;
+
+	 	 case ROCKET_SEPARATION:
+	 		 strcpy(datatelemetri.state, "ROCKET_SEPARATION");
+	 		 if (datatelemetri.alt <= 700)
+	 		 {
+	 			 valid++;
+	 			 if (valid > 4)
+	 			 {
+	 				 valid = 0;
+
+	 				 datatelemetri.hsdeploy = 'P';
+	 				 datatelemetri.pcdeploy = 'N';
+	 				 TM_BKPSRAM_Write8(HSDEPLOY_ADR, datatelemetri.hsdeploy);
+	 				 TM_BKPSRAM_Write8(PCDEPLOY_ADR, datatelemetri.pcdeploy);
+
+	 				 cansatState = DESCENT;
+	 				 TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
+	 			 }
+	 		 }
+	 		 break;
+
+	 	 case DESCENT:
+	 		 strcpy(datatelemetri.state, "DESCENT");
+	 		 if (datatelemetri.alt <= 150)
+	 		 {
+	 			 servogerak(&htim4, TIM_CHANNEL_1, 135);
+	 		 }
+	 		 if (datatelemetri.alt <= 100)
+	 		 {
+	 			 datatelemetri.hsdeploy = 'P';
+	 			 datatelemetri.pcdeploy = 'C';
+	 			 TM_BKPSRAM_Write8(HSDEPLOY_ADR, datatelemetri.hsdeploy);
+	 			 TM_BKPSRAM_Write8(PCDEPLOY_ADR, datatelemetri.pcdeploy);
+
+	 			 cansatState = HS_RELEASE;
+	 			 TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
+	 		 }
+	 		 break;
+
+		case HS_RELEASE:
+			strcpy(datatelemetri.state, "HS_RELEASE");
+			if (datatelemetri.alt < 13)
+			{
+				cansatState = LANDED;
+				TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
+			}
+			break;
+
+		case LANDED:
+			strcpy(datatelemetri.state, "LANDED");
+			valid++;
+			if (valid > 4)
+			{
+				valid = 0;
+				osSemaphoreAcquire(gimbalSemaphoreHandle, osWaitForever);
+				osSemaphoreAcquire(telemetryTaskHandle, osWaitForever);
+
+				camera = CAM_OFF;
+				osThreadFlagsSet(cameraTaskHandle, 1);
+
+				HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
+
+				cansatState = DONE;
+				TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
+			}
+			break;
+
+		case DONE:
+			strcpy(datatelemetri.state, "LANDED");
+			break;
+	 }
 }
 
 void wakturtc(uint8_t timebuff, char datat[])

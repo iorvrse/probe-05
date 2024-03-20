@@ -43,7 +43,8 @@ typedef enum
     ROCKET_SEPARATION,
     DESCENT,
     HS_RELEASE,
-    LANDED
+    LANDED,
+	DONE
 } state_t;
 
 typedef enum

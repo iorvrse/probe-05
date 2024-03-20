@@ -309,6 +309,8 @@ bno055_vector_t bno055_getVectorLinearAccel();
 bno055_vector_t bno055_getVectorGravity();
 bno055_vector_t bno055_getVectorQuaternion();
 void bno055_setAxisMap(bno055_axis_map_t axis);
+bno055_vector_t bno055_getEuler();
+float bno055_getRotationZ();
 
 #ifdef __cplusplus
   }
