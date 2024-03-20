@@ -57,6 +57,8 @@ cam_t camera;
 #define SAMPLE_TIME_RTC_MS 			1000
 #define SAMPLE_TIME_DATA_MS			1000
 #define SAMPLE_TIME_TELEMETRY_MS	1000
+#define SAMPLE_TIME_ADC_MS			250
+#define SAMPLE_TIME_GPS_MS			250
 
 /* USER CODE END PM */
 
@@ -138,7 +140,7 @@ osThreadId_t cameraTaskHandle;
 const osThreadAttr_t cameraTask_attributes = {
   .name = "cameraTask",
   .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityNormal,
 };
 /* Definitions for calibrationTask */
 osThreadId_t calibrationTaskHandle;
@@ -159,7 +161,7 @@ osThreadId_t gpsTaskHandle;
 const osThreadAttr_t gpsTask_attributes = {
   .name = "gpsTask",
   .stack_size = 512 * 4,
-  .priority = (osPriority_t) osPriorityLow,
+  .priority = (osPriority_t) osPriorityLow1,
 };
 /* Definitions for getdataTask */
 osThreadId_t getdataTaskHandle;
@@ -1442,7 +1444,7 @@ void StartADCTask(void *argument)
   {
 	  osThreadFlagsWait(1, osFlagsWaitAny, osWaitForever);
 	  ADC_measure();
-	  osDelay(250);
+	  osDelay(SAMPLE_TIME_ADC_MS);
   }
   /* USER CODE END StartADCTask */
 }
@@ -1462,6 +1464,7 @@ void StartGPSTask(void *argument)
   {
 	  osThreadFlagsWait(1, osFlagsWaitAny, osWaitForever);
 	  parsegpsdata();
+	  osDelay(SAMPLE_TIME_GPS_MS);
   }
   /* USER CODE END StartGPSTask */
 }

@@ -49,7 +49,7 @@ char rxgps[128];
 
 float gpslat,gpslong,gpsalt;
 uint8_t gpssat;
-char gpsdetik[3], gpsmenit[3], gpsjam[3];
+char gpsdetik[4], gpsmenit[4], gpsjam[4];
 
 #define FILTER_SIZE 5
 float readings[FILTER_SIZE];
@@ -304,10 +304,11 @@ void state()
 	 				 datatelemetri.pcdeploy = 'N';
 	 				 TM_BKPSRAM_Write8(HSDEPLOY_ADR, datatelemetri.hsdeploy);
 	 				 TM_BKPSRAM_Write8(PCDEPLOY_ADR, datatelemetri.pcdeploy);
-
+#ifdef USE_SERVO_GIMBAL
 	 				 camera = MAIN_CAM;
 	 				 osThreadFlagsSet(cameraTaskHandle, 1);
-	 				 osSemaphoreRelease(gimbalTaskHandle);
+#endif /* USE_SERVO_GIMBAL */
+	 				 osSemaphoreRelease(gimbalSemaphoreHandle);
 
 	 				 cansatState = ROCKET_SEPARATION;
 	 				 TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
@@ -368,13 +369,14 @@ void state()
 			if (valid > 4)
 			{
 				valid = 0;
-				osSemaphoreAcquire(gimbalSemaphoreHandle, osWaitForever);
-				osSemaphoreAcquire(telemetryTaskHandle, osWaitForever);
 
 				camera = CAM_OFF;
 				osThreadFlagsSet(cameraTaskHandle, 1);
 
 				HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
+
+				osSemaphoreAcquire(telemetrySemaphoreHandle, osWaitForever);
+				osSemaphoreAcquire(gimbalSemaphoreHandle, osWaitForever);
 
 				cansatState = DONE;
 				TM_BKPSRAM_Write8(STATEIND_ADR, cansatState);
