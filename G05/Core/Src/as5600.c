@@ -15,19 +15,14 @@ int32_t getCumulativePosition(void)
     int16_t value = readReg2(AS5600_ANGLE) & 0x0FFF;
 
     // Whole rotation CW?
-    if ((_lastPosition > 2048) && (value < (_lastPosition - 2048)))
-    {
+    if ((_lastPosition > 2048) && (value < (_lastPosition - 2048))) {
         _position = _position + 4095 - _lastPosition + value;
     }
     // Whole rotation CCW?
-    else if ((value > 2048) && (_lastPosition < (value - 2048)))
-    {
+    else if ((value > 2048) && (_lastPosition < (value - 2048))) {
         _position = _position - 4095 - _lastPosition + value;
-    }
-    else
-    {
+    } else
         _position = _position - _lastPosition + value;
-    }
     _lastPosition = value;
 
     return _position;

@@ -50,7 +50,7 @@ char rxgps[128];
 
 float gpslat,gpslong,gpsalt;
 uint8_t gpssat;
-char gpsdetik[3], gpsmenit[3], gpsjam[3];
+char gpsdetik[4], gpsmenit[4], gpsjam[4];
 
 char commandbuff[15];
 
@@ -463,6 +463,7 @@ void state()
 		{
 			flagkameraoff = 1;
 			flagtel = 0;
+			flaggimbal = 0;
 			valid = 0;
 		}
 		HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);

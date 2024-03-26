@@ -45,7 +45,7 @@ extern UART_HandleTypeDef huart2;
 
 extern float gpslat, gpslong, gpsalt;
 extern uint8_t gpssat;
-extern char gpsdetik[3], gpsmenit[3], gpsjam[3];
+extern char gpsdetik[4], gpsmenit[4], gpsjam[4];
 
 extern lwgps_t gps;
 extern char rxgps[128];

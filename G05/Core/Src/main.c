@@ -70,6 +70,7 @@ TIM_HandleTypeDef htim9;
 TIM_HandleTypeDef htim10;
 TIM_HandleTypeDef htim11;
 TIM_HandleTypeDef htim13;
+TIM_HandleTypeDef htim14;
 
 UART_HandleTypeDef huart2;
 UART_HandleTypeDef huart3;
@@ -119,9 +120,13 @@ static void MX_TIM13_Init(void);
 static void MX_TIM11_Init(void);
 static void MX_RTC_Init(void);
 static void MX_TIM1_Init(void);
+static void MX_TIM14_Init(void);
 /* USER CODE BEGIN PFP */
 
-int map(int value, int from_low, int from_high, int to_low, int to_high);
+int map(int value, int from_low, int from_high, int to_low, int to_high)
+{
+    return ((value - from_low) * (to_high - to_low)) / (from_high - from_low) + to_low;
+}
 
 /* USER CODE END PFP */
 
@@ -218,47 +223,42 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		bno055_gyro = bno055_getVectorGyroscope();
 		bno055_euler = bno055_getVectorEuler();
+    }
 
+	if (htim == &htim14)
+	{
 		if (flaggimbal)
 		{
-//			if (bno055_euler.x >= 0 && bno055_euler.x < 180)
-//			{
-//				servogerak(&htim3, TIM_CHANNEL_1, bno055_euler.x);
-//				servogerak(&htim3, TIM_CHANNEL_3, 0);
-//			}
-//			else if (bno055_euler.x >= 180 && bno055_euler.x <= 360)
-//			{
-//				servogerak(&htim3, TIM_CHANNEL_1, 180);
-//				servogerak(&htim3, TIM_CHANNEL_3, bno055_euler.x - 180);
-//			}
+#ifdef USE_SERVO_GIMBAL
+			if (bno055_euler.x >= 0 && bno055_euler.x < 180)
+			{
+				servogerak(&htim3, TIM_CHANNEL_1, bno055_euler.x);
+				servogerak(&htim3, TIM_CHANNEL_3, 0);
+			}
+			else if (bno055_euler.x >= 180 && bno055_euler.x <= 360)
+			{
+				servogerak(&htim3, TIM_CHANNEL_1, 180);
+				servogerak(&htim3, TIM_CHANNEL_3, bno055_euler.x - 180);
+			}
+#else /* USE_SERVO_GIMBAL */
 			CountENC = getCumulativePosition();
-			Rev = CountENC % 4095;
-			Current_Angle = map(Rev, 0, 4095, 0, 359);
-			CW = ((int)bno055_euler.x - Current_Angle + 360) % 360;
-			CCW = ((Current_Angle - (int)bno055_euler.x + 360) % 360);
-
-			if (CW < CCW)
-			{
-				jarak_min = CW;
-			}
-			else
-			{
-				jarak_min = -CCW;
-			}
-
-			input = jarak_min;
+			Rev=CountENC%4095;
+			Current_Angle = map(Rev,0,4095,0,359);
+			CW=((int)bno055_euler.x-Current_Angle+360)%360;
+			CCW=((Current_Angle-(int)bno055_euler.x+360)%360);
+			if(CW < CCW) jarak_min=CW;
+			else jarak_min=-CCW;
+			input=jarak_min;
 			PID_Compute(&_PID);
 
-			if (output > 0)
-			{
+			if (output > 0) {
 				TIM1->CCR3 = (uint32_t)output;
-			}
-			else
-			{
+			} else {
 				TIM1->CCR2 = (uint32_t)abs(output);
 			}
+#endif /* USE_SERVO_GIMBAL */
 		}
-    }
+	}
 }
 
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
@@ -291,6 +291,7 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
   */
 int main(void)
 {
+
   /* USER CODE BEGIN 1 */
 
   /* USER CODE END 1 */
@@ -329,6 +330,7 @@ int main(void)
   MX_TIM11_Init();
   MX_RTC_Init();
   MX_TIM1_Init();
+  MX_TIM14_Init();
   /* USER CODE BEGIN 2 */
 
   TM_BKPSRAM_Init();
@@ -346,6 +348,11 @@ int main(void)
 	  Error_Handler();
   }
 
+
+#ifdef USE_SERVO_GIMBAL
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+#else /* USE_SERVO_GIMBAL */
   PID(&_PID, &input, &output, &Setpoint, 11, 0, 0, _PID_P_ON_E, _PID_CD_DIRECT);
   PID_SetMode(&_PID, _PID_MODE_AUTOMATIC);
   PID_SetSampleTime(&_PID, 1);
@@ -358,8 +365,7 @@ int main(void)
 
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
+#endif /* USE_SERVO_GIMBAL */
   HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 
   kominit();
@@ -369,6 +375,7 @@ int main(void)
   HAL_TIM_Base_Start_IT(&htim10);
   HAL_TIM_Base_Start_IT(&htim11);
   HAL_TIM_Base_Start_IT(&htim13);
+  HAL_TIM_Base_Start_IT(&htim14);
 
   /* USER CODE END 2 */
 
@@ -663,7 +670,7 @@ static void MX_TIM1_Init(void)
   htim1.Instance = TIM1;
   htim1.Init.Prescaler = 6588;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 256-1;
+  htim1.Init.Period = 255;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -953,7 +960,7 @@ static void MX_TIM13_Init(void)
   htim13.Instance = TIM13;
   htim13.Init.Prescaler = 8400-1;
   htim13.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim13.Init.Period = 30-1;
+  htim13.Init.Period = 200-1;
   htim13.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim13.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim13) != HAL_OK)
@@ -963,6 +970,37 @@ static void MX_TIM13_Init(void)
   /* USER CODE BEGIN TIM13_Init 2 */
 
   /* USER CODE END TIM13_Init 2 */
+
+}
+
+/**
+  * @brief TIM14 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_TIM14_Init(void)
+{
+
+  /* USER CODE BEGIN TIM14_Init 0 */
+
+  /* USER CODE END TIM14_Init 0 */
+
+  /* USER CODE BEGIN TIM14_Init 1 */
+
+  /* USER CODE END TIM14_Init 1 */
+  htim14.Instance = TIM14;
+  htim14.Init.Prescaler = 8400-1;
+  htim14.Init.CounterMode = TIM_COUNTERMODE_UP;
+  htim14.Init.Period = 10-1;
+  htim14.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+  htim14.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+  if (HAL_TIM_Base_Init(&htim14) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN TIM14_Init 2 */
+
+  /* USER CODE END TIM14_Init 2 */
 
 }
 
@@ -1102,10 +1140,7 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-int map(int value, int from_low, int from_high, int to_low, int to_high)
-{
-    return ((value - from_low) * (to_high - to_low)) / (from_high - from_low) + to_low;
-}
+
 /* USER CODE END 4 */
 
 /**
