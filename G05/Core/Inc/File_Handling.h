@@ -28,7 +28,4 @@ FRESULT Create_File (char *name);
  */
 FRESULT Update_File (char *name, char *data);
 
-
-
-
 #endif /* FILE_HANDLING_RTOS_H_ */

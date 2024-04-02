@@ -1,10 +1,3 @@
-/*
- * task.c
- *
- *  Created on: Dec 26, 2022
- *      Author: user
- *
- */
 #include "main.h"
 #include "task.h"
 #include "stm32f4xx_hal.h"
@@ -38,9 +31,10 @@ uint8_t check, csh;
 uint8_t flagrefalt;
 uint8_t flaginvalid;
 uint8_t flaggimbal = 0;
+uint8_t flagcal = 0;
 
-bno055_calibration_state_t calStat;
-bno055_calibration_data_t calData;
+bno055_calibration_state_t bno055_calStat;
+bno055_calibration_data_t bno055_calData;
 extern bno055_vector_t bno055_euler, bno055_gyro;
 
 float Temperature, Pressure, Humidity, Spressure = 101325, refalt = 0, tempalt = 0;
@@ -86,7 +80,9 @@ void init()
 void READRAM()
 {
     counting = TM_BKPSRAM_Read16(PACKETCOUNT_ADR);
-    switch(TM_BKPSRAM_Read8(STATEIND_ADR))
+    refalt = TM_BKPSRAM_ReadFloat(REFALT_ADR);
+    flagstate = TM_BKPSRAM_Read8(STATEIND_ADR);
+    switch(flagstate)
     {
 		case 0:
 			strcpy(datatelemetri.state, "ASCENT");
@@ -104,11 +100,12 @@ void READRAM()
 			strcpy(datatelemetri.state, "LANDED");
 			break;
     }
-    refalt = TM_BKPSRAM_ReadFloat(REFALT_ADR);
-    flagstate = TM_BKPSRAM_Read8(STATEIND_ADR);
     flagtel = TM_BKPSRAM_Read8(FLAGTEL_ADR);
     datatelemetri.hsdeploy = TM_BKPSRAM_Read8(HSDEPLOY_ADR);
     datatelemetri.pcdeploy = TM_BKPSRAM_Read8(PCDEPLOY_ADR);
+    flaggimbal = TM_BKPSRAM_Read8(FLAGGIMBAL_ADR);
+    flagcal = TM_BKPSRAM_Read8(FLAGCAL_ADR);
+    bno055_calData = TM_BKPSRAM_ReadCalData(BNO055CAL_ADR);
 }
 
 void RESETSRAM()
@@ -118,6 +115,7 @@ void RESETSRAM()
     TM_BKPSRAM_Write8(STATEIND_ADR, flagstate);
     TM_BKPSRAM_Write8(HSDEPLOY_ADR, datatelemetri.hsdeploy);
     TM_BKPSRAM_Write8(PCDEPLOY_ADR, datatelemetri.pcdeploy);
+    TM_BKPSRAM_Write8(FLAGGIMBAL_ADR, flaggimbal);
 }
 
 void adcinit()
@@ -169,44 +167,52 @@ void bno055_init()
     bno055_setup();
     bno055_setOperationModeNDOF();
 
-//    for (;;)
-//    {
-//		calStat = bno055_getCalibrationState();
-//
-//		if (calStat.gyro == 3)
-//			HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, SET);
-//		else
-//			HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, RESET);
-//
-//		if (calStat.accel == 3)
-//			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, SET);
-//		else
-//			HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, RESET);
-//
-//		if (calStat.mag == 3)
-//			HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, SET);
-//		else
-//			HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, RESET);
-//
-//		if (calStat.sys == 3)
-//			HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, SET);
-//		else
-//			HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, RESET);
-//
-//		if (calStat.gyro == 3 && calStat.mag == 3 && calStat.accel == 3)
-//		{
-//			calData = bno055_getCalibrationData();
-//			bno055_setCalibrationData(calData);
-//			break;
-//		}
-//    }
+    if (flagcal)
+    {
+    	char calbuff[20];
+		for (;;)
+		{
+			bno055_calStat = bno055_getCalibrationState();
+			sprintf(calbuff, "%d,%d,%d,%d\r\n", bno055_calStat.accel, bno055_calStat.gyro, bno055_calStat.mag, bno055_calStat.sys);
+			HAL_UART_Transmit(&huart3, (uint8_t *)calbuff, strlen(calbuff), HAL_MAX_DELAY);
 
-    HAL_Delay(500);
-    HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, RESET);
-    HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, RESET);
-    HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, RESET);
-    HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, RESET);
-    HAL_Delay(500);
+			if (bno055_calStat.gyro == 3)
+				HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, SET);
+			else
+				HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, RESET);
+
+			if (bno055_calStat.accel == 3)
+				HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, SET);
+			else
+				HAL_GPIO_WritePin(LED2_GPIO_Port, LED2_Pin, RESET);
+
+			if (bno055_calStat.mag == 3)
+				HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, SET);
+			else
+				HAL_GPIO_WritePin(LED3_GPIO_Port, LED3_Pin, RESET);
+
+			if (bno055_calStat.sys == 3)
+				HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, SET);
+			else
+				HAL_GPIO_WritePin(LED4_GPIO_Port, LED4_Pin, RESET);
+
+			if (bno055_calStat.gyro == 3 && bno055_calStat.mag == 3 && bno055_calStat.accel == 3 && bno055_calStat.sys)
+			{
+				bno055_calData = bno055_getCalibrationData();
+				bno055_setCalibrationData(bno055_calData);
+				TM_BKPSRAM_WriteCalData(BNO055CAL_ADR, bno055_calData);
+				flagcal = 0;
+				TM_BKPSRAM_Write8(FLAGCAL_ADR, flagcal);
+				break;
+			}
+		}
+    }
+    else
+    {
+    	bno055_setCalibrationData(bno055_calData);
+    }
+
+    HAL_GPIO_WritePin(GPIOE, LED1_Pin | LED2_Pin | LED3_Pin | LED4_Pin, RESET);
 
     HAL_GPIO_WritePin(LED1_GPIO_Port, LED1_Pin, SET);
 }
@@ -344,12 +350,13 @@ void Settime(uint8_t jam_, uint8_t menit_, uint8_t detik_)
     {
     	Error_Handler();
     }
+
     HAL_RTCEx_BKUPWrite(&hrtc, RTC_BKP_DR1, 0x32F2);
 }
 
 void rtcbackup()
 {
-    if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1)!= 0x32F2)
+    if (HAL_RTCEx_BKUPRead(&hrtc, RTC_BKP_DR1) != 0x32F2)
     {
     	Settime(0,0,0);
     }
@@ -408,8 +415,8 @@ void state()
     if (datatelemetri.alt > 100 && flagstate == 0)
     {
 		strcpy(datatelemetri.state, "ASCENT");
-		TM_BKPSRAM_Write8(STATEIND_ADR,0);
 		flagstate = 1;
+		TM_BKPSRAM_Write8(STATEIND_ADR,0);
     }
     else if ((datatelemetri.alt - tempalt) < 0 && flagstate == 1)
     {
@@ -417,23 +424,30 @@ void state()
 		if (valid > 4)
 		{
 			valid = 0;
+
+			strcpy(datatelemetri.state, "ROCKET_SEPARATION");
 			datatelemetri.hsdeploy = 'P';
 			datatelemetri.pcdeploy 	= 'N';
-			strcpy(datatelemetri.state, "ROCKET_SEPARATION");
 			TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
 			TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
-			TM_BKPSRAM_Write8(STATEIND_ADR, 1);
+
+#ifdef USE_SERVO_GIMBAL
 			camera = 2;
 			flagkameraon = 1;
+#endif
+
 			flaggimbal = 1;
+			TM_BKPSRAM_Write8(FLAGGIMBAL_ADR, flaggimbal);
+
 			flagstate = 2;
+			TM_BKPSRAM_Write8(STATEIND_ADR, 1);
 		}
     }
     else if ((datatelemetri.alt - tempalt) < 0 && flagstate == 2)
     {
 		strcpy(datatelemetri.state, "DESCENT");
-		TM_BKPSRAM_Write8(STATEIND_ADR,2);
 		flagstate = 3;
+		TM_BKPSRAM_Write8(STATEIND_ADR,2);
     }
     else if (datatelemetri.alt <= 150 && flagstate == 3 && !flaginvalid)
     {
@@ -445,26 +459,29 @@ void state()
 		strcpy(datatelemetri.state, "HS_RELEASE");
     	datatelemetri.pcdeploy = 'C';
 		datatelemetri.hsdeploy = 'P';
-		TM_BKPSRAM_Write8(STATEIND_ADR,3);
 		TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
 		TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
+
 		flagstate = 5;
+		TM_BKPSRAM_Write8(STATEIND_ADR,3);
     }
     else if (datatelemetri.alt < 13 && flagstate == 5 && !flaginvalid)
     {
 		strcpy(datatelemetri.state, "LANDED");
 		datatelemetri.pcdeploy = 'C';
 		datatelemetri.hsdeploy = 'P';
-		TM_BKPSRAM_Write8(STATEIND_ADR,4);
 		TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
 		TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
+		TM_BKPSRAM_Write8(STATEIND_ADR,4);
 		valid++;
 		if (valid > 4)
 		{
+			valid = 0;
+
 			flagkameraoff = 1;
 			flagtel = 0;
 			flaggimbal = 0;
-			valid = 0;
+			TM_BKPSRAM_Write8(FLAGGIMBAL_ADR, flaggimbal);
 		}
 		HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
     }
@@ -594,28 +611,30 @@ void CAL()
     RESETSRAM();
 
     HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, RESET);
+    servogerak(&htim4, TIM_CHANNEL_1, 0);
+#ifdef USE_SERVO_GIMBAL
     servogerak(&htim3, TIM_CHANNEL_1, 0);
 	servogerak(&htim3, TIM_CHANNEL_3, 0);
-    servogerak(&htim4, TIM_CHANNEL_1, 0);
-
+#else /* USE_SERVO_GIMBAL */
     resetPosition(0);
     resetCumulativePosition(0);
     TIM1->CCR2 = 0;
     TIM1->CCR3 = 0;
+#endif /* USE_SERVO_GIMBAL */
 }
 
 void GB()
 {
 	isidata(4, commandbuff);
-	switch (commandbuff[1])
+	if ((commandbuff[0] == 'O') && (commandbuff[1] == 'N'))
 	{
-		case 'N':
-			flaggimbal = 1;
-			break;
-		case 'F':
-			flaggimbal = 0;
-			break;
+		flaggimbal = 1;
 	}
+	else if ((commandbuff[0] == 'O') && (commandbuff[1] == 'F'))
+	{
+		flaggimbal = 0;
+	}
+	TM_BKPSRAM_Write8(FLAGGIMBAL_ADR, flaggimbal);
 }
 
 void HS()
@@ -641,6 +660,13 @@ void CAM()
 			flagkameraoff = 1;
 			break;
 	}
+}
+
+void IMU()
+{
+	flagcal = 1;
+	TM_BKPSRAM_Write8(FLAGCAL_ADR, flagcal);
+	CR();
 }
 
 void CR()

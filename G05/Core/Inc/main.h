@@ -75,13 +75,16 @@ void Error_Handler(void);
 #define CAM2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
-#define TEAM_ID			2032
-#define PACKETCOUNT_ADR 0x00
-#define REFALT_ADR		0x32
-#define STATEIND_ADR 	0x96
-#define FLAGTEL_ADR		0xC8
-#define HSDEPLOY_ADR 	0xFA
-#define PCDEPLOY_ADR 	0x12C
+// Separate each address by 8 bit
+#define PACKETCOUNT_ADR 0x00	// 16 bit
+#define REFALT_ADR		0x18	// 64 bit (float is 32 bit but let's assume there's a calculation that might be promote float to double)
+#define STATEIND_ADR 	0x60	// 8 bit
+#define FLAGTEL_ADR		0x70	// 8 bit
+#define HSDEPLOY_ADR 	0x80	// 8 bit
+#define PCDEPLOY_ADR 	0x90	// 8 bit
+#define FLAGGIMBAL_ADR	0xA0	// 8 bit
+#define FLAGCAL_ADR		0xB0	// 8 bit
+#define BNO055CAL_ADR	0xC0
 /* USER CODE END Private defines */
 
 #ifdef __cplusplus

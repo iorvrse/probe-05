@@ -8,7 +8,6 @@
 #include "task.h"
 #include "stm32f4xx_hal.h"
 
-char cx[]="CX",st[]="ST",sim[]="SIM",simp[]="SIMP",cal[]="CAL",bk[]="BK",tc[]="TC",cr[]="CR",tn[]="2032",bcn[]="BCN",gb[]="GB",hs[]="HS",cam[]="CAM";
 uint8_t cmd,rxdata[2],datalkp[30],i;
 extern UART_HandleTypeDef huart3;
 
@@ -70,16 +69,17 @@ void checkdata_(void)
 			cmd = 0;
 			i=0;
 
-			if ((cocokan(3,cx)==2)&&(cocokan(2,tn)==4)) CX();
-			else if ((cocokan(3,sim)==3)&&(cocokan(2,tn)==4)) SIM();
-			else if ((cocokan(3,simp)==4)&&(cocokan(2,tn)==4)) SIMP();
-			else if ((cocokan(3,cal)==3)&&(cocokan(2,tn)==4)) CAL();
-			else if ((cocokan(3,st)==2)&&(cocokan(2,tn)==4)) ST();
-			else if ((cocokan(3,cr)==2)&&(cocokan(2,tn)==4)) CR();
-			else if ((cocokan(3,bcn)==3)&&(cocokan(2,tn)==4)) BCN();
-			else if ((cocokan(3,gb)==2)&&(cocokan(2,tn)==4)) GB();
-			else if ((cocokan(3,hs)==2)&&(cocokan(2,tn)==4)) HS();
-			else if ((cocokan(3,cam)==3)&&(cocokan(2,tn)==4)) CAM();
+			if ((cocokan(3, "CX") == 2) && (cocokan(2, "2032") == 4)) CX();
+			else if ((cocokan(3, "SIMP") == 4) && (cocokan(2,"2032") == 4)) SIMP();
+			else if ((cocokan(3, "SIM") == 3) && (cocokan(2,"2032") == 4)) SIM();
+			else if ((cocokan(3, "CAL") == 3) && (cocokan(2,"2032") == 4)) CAL();
+			else if ((cocokan(3, "ST") == 2) && (cocokan(2,"2032") == 4)) ST();
+			else if ((cocokan(3, "CR") == 2) && (cocokan(2,"2032") == 4)) CR();
+			else if ((cocokan(3, "BCN") == 3) && (cocokan(2,"2032") == 4)) BCN();
+			else if ((cocokan(3, "GB") == 2) && (cocokan(2,"2032") == 4)) GB();
+			else if ((cocokan(3, "HS") == 2) && (cocokan(2,"2032") == 4)) HS();
+			else if ((cocokan(3, "CAM") == 3) && (cocokan(2,"2032") == 4)) CAM();
+			else if ((cocokan(3, "IMU") == 3) && (cocokan(2,"2032") == 4)) IMU();
 		}
 		else
 		{

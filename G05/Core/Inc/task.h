@@ -1,10 +1,3 @@
-/*
- * task.h
- *
- *  Created on: Dec 26, 2022
- *      Author: user
- */
-
 #ifndef INC_TASK_H_
 #define INC_TASK_H_
 
@@ -35,6 +28,7 @@ void GB();
 void HS();
 void CAM();
 void CR();
+void IMU();
 
 typedef struct {
 	char telemetribuff[170];
