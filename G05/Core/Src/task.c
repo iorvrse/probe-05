@@ -72,9 +72,7 @@ void init()
     gpslong = 0.0000;
     gpsalt = 0.0;
     gpssat = 0;
-    servogerak(&htim3, TIM_CHANNEL_1, 0);
 	servogerak(&htim3, TIM_CHANNEL_3, 0);
-    servogerak(&htim4, TIM_CHANNEL_1, 0);
 }
 
 void READRAM()
@@ -451,7 +449,7 @@ void state()
     }
     else if (datatelemetri.alt <= 150 && flagstate == 3 && !flaginvalid)
     {
-		servogerak(&htim4, TIM_CHANNEL_1, 135);
+		servogerak(&htim3, TIM_CHANNEL_3, 135);
 		flagstate = 4;
     }
     else if (datatelemetri.alt <= 100 && flagstate == 4 && !flaginvalid)
@@ -611,15 +609,17 @@ void CAL()
     RESETSRAM();
 
     HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, RESET);
-    servogerak(&htim4, TIM_CHANNEL_1, 0);
+    servogerak(&htim3, TIM_CHANNEL_3, 0);
+    camera = 1;
+    flagkameraon = 1;
 #ifdef USE_SERVO_GIMBAL
     servogerak(&htim3, TIM_CHANNEL_1, 0);
 	servogerak(&htim3, TIM_CHANNEL_3, 0);
 #else /* USE_SERVO_GIMBAL */
-    resetPosition(0);
-    resetCumulativePosition(0);
-    TIM1->CCR2 = 0;
-    TIM1->CCR3 = 0;
+//    resetPosition(0);
+//    resetCumulativePosition(0);
+//    TIM1->CCR2 = 0;
+//    TIM1->CCR3 = 0;
 #endif /* USE_SERVO_GIMBAL */
 }
 
@@ -639,7 +639,7 @@ void GB()
 
 void HS()
 {
-	servogerak(&htim4, TIM_CHANNEL_1, 135);
+	servogerak(&htim3, TIM_CHANNEL_3, 135);
 }
 
 void CAM()

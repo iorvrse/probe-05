@@ -365,7 +365,7 @@ int main(void)
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
 #endif /* USE_SERVO_GIMBAL */
-  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
 
   kominit();
   gpsinit();
