@@ -86,10 +86,8 @@ extern uint8_t flaggimbal;
 extern uint8_t flagtel;
 extern uint8_t flagkameraon;
 extern uint8_t flagkameraoff;
-extern uint8_t camera;
 uint8_t timerkamera1 = 29;
 uint8_t timerkamera2 = 26;
-uint16_t cam_pin;
 
 bno055_vector_t bno055_euler, bno055_gyro;
 
@@ -155,36 +153,27 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 
 		if (flagkameraon)
 		{
-			switch (camera) {
-				case 1:
-					cam_pin = CAM1_Pin;
-					break;
-				case 2:
-					cam_pin = CAM2_Pin;
-					break;
-			}
-
 			timerkamera1--;
 			if(timerkamera1 < 29 && timerkamera1 > 27)
 			{
 				//28
-				HAL_GPIO_WritePin(GPIOB, cam_pin, SET);
+				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, SET);
 			}
 			else if (timerkamera1 > 11 && timerkamera1 < 13)
 			{
 				//12
-				HAL_GPIO_WritePin(GPIOB, cam_pin, RESET);
+				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, RESET);
 			}
 			else if (timerkamera1 > 3 && timerkamera1 < 5)
 			{
 				//4
-				HAL_GPIO_WritePin(GPIOB, cam_pin, SET);
+				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, SET);
 			}
 			if (timerkamera1 < 1)
 			{
 				flagkameraon = 0;
 				timerkamera1 = 29;
-				HAL_GPIO_WritePin(GPIOB, cam_pin, RESET);
+				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, RESET);
 			}
 		}
 
@@ -195,26 +184,22 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			{
 				//25
 				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, SET);
-				HAL_GPIO_WritePin(CAM2_GPIO_Port, CAM2_Pin, SET);
 			}
 			else if (timerkamera2 < 22 && timerkamera2 > 20)
 			{
 				//21
 				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, RESET);
-				HAL_GPIO_WritePin(CAM2_GPIO_Port, CAM2_Pin, RESET);
 			}
 			else if (timerkamera2 < 19 && timerkamera2 > 17)
 			{
 				//18
 				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, SET);
-				HAL_GPIO_WritePin(CAM2_GPIO_Port, CAM2_Pin, SET);
 			}
 			else if (timerkamera2 < 1)
 			{
 				flagkameraoff = 0;
 				timerkamera2 = 26;
 				HAL_GPIO_WritePin(CAM1_GPIO_Port, CAM1_Pin, RESET);
-				HAL_GPIO_WritePin(CAM2_GPIO_Port, CAM2_Pin, RESET);
 			}
 		}
 	}
@@ -229,18 +214,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 	{
 		if (flaggimbal)
 		{
-#ifdef USE_SERVO_GIMBAL
-			if (bno055_euler.x >= 0 && bno055_euler.x < 180)
-			{
-				servogerak(&htim3, TIM_CHANNEL_1, bno055_euler.x);
-				servogerak(&htim3, TIM_CHANNEL_3, 0);
-			}
-			else if (bno055_euler.x >= 180 && bno055_euler.x <= 360)
-			{
-				servogerak(&htim3, TIM_CHANNEL_1, 180);
-				servogerak(&htim3, TIM_CHANNEL_3, bno055_euler.x - 180);
-			}
-#else /* USE_SERVO_GIMBAL */
 			CountENC = getCumulativePosition();
 			Rev=CountENC%4095;
 			Current_Angle = map(Rev,0,4095,0,359);
@@ -256,7 +229,6 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 			} else {
 				TIM1->CCR2 = (uint32_t)abs(output);
 			}
-#endif /* USE_SERVO_GIMBAL */
 		}
 	}
 }
@@ -348,10 +320,6 @@ int main(void)
 	  Error_Handler();
   }
 
-#ifdef USE_SERVO_GIMBAL
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
-#else /* USE_SERVO_GIMBAL */
   PID(&_PID, &input, &output, &Setpoint, 11, 0, 0, _PID_P_ON_E, _PID_CD_DIRECT);
   PID_SetMode(&_PID, _PID_MODE_AUTOMATIC);
   PID_SetSampleTime(&_PID, 1);
@@ -364,7 +332,6 @@ int main(void)
 
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
   HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_2);
-#endif /* USE_SERVO_GIMBAL */
   HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_3);
 
   kominit();

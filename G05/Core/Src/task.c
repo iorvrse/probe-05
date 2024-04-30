@@ -18,11 +18,9 @@ extern UART_HandleTypeDef huart3;
 extern I2C_HandleTypeDef hi2c2;
 extern ADC_HandleTypeDef hadc1;
 extern TIM_HandleTypeDef htim3;
-extern TIM_HandleTypeDef htim4;
 
 uint8_t flagkameraon;
 uint8_t flagkameraoff;
-uint8_t camera = 0;
 
 uint8_t flagtel=0, flagsim = 0,flagstate = 0, valid = 0;
 uint16_t counting = 1;
@@ -31,7 +29,7 @@ uint8_t check, csh;
 uint8_t flagrefalt;
 uint8_t flaginvalid;
 uint8_t flaggimbal = 0;
-uint8_t flagcal = 0;
+uint8_t flagcal = 1;
 
 bno055_calibration_state_t bno055_calStat;
 bno055_calibration_data_t bno055_calData;
@@ -165,7 +163,7 @@ void bno055_init()
     bno055_setup();
     bno055_setOperationModeNDOF();
 
-    if (flagcal)
+    if (!flagcal)
     {
     	char calbuff[20];
 		for (;;)
@@ -429,11 +427,6 @@ void state()
 			TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
 			TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
 
-#ifdef USE_SERVO_GIMBAL
-			camera = 2;
-			flagkameraon = 1;
-#endif
-
 			flaggimbal = 1;
 			TM_BKPSRAM_Write8(FLAGGIMBAL_ADR, flaggimbal);
 
@@ -610,17 +603,11 @@ void CAL()
 
     HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, RESET);
     servogerak(&htim3, TIM_CHANNEL_3, 0);
-    camera = 1;
-    flagkameraon = 1;
-#ifdef USE_SERVO_GIMBAL
-    servogerak(&htim3, TIM_CHANNEL_1, 0);
-	servogerak(&htim3, TIM_CHANNEL_3, 0);
-#else /* USE_SERVO_GIMBAL */
-//    resetPosition(0);
-//    resetCumulativePosition(0);
-//    TIM1->CCR2 = 0;
-//    TIM1->CCR3 = 0;
-#endif /* USE_SERVO_GIMBAL */
+
+    resetPosition(0);
+    resetCumulativePosition(0);
+    TIM1->CCR2 = 0;
+    TIM1->CCR3 = 0;
 }
 
 void GB()
@@ -648,15 +635,9 @@ void CAM()
 	switch (commandbuff[0])
 	{
 		case '1':
-			camera = 1;
 			flagkameraon = 1;
 			break;
-		case '2':
-			camera = 2;
-			flagkameraon = 2;
-			break;
-		case '0':
-			camera = 0;
+		case 'O':
 			flagkameraoff = 1;
 			break;
 	}
@@ -664,7 +645,7 @@ void CAM()
 
 void IMU()
 {
-	flagcal = 1;
+	flagcal = 0;
 	TM_BKPSRAM_Write8(FLAGCAL_ADR, flagcal);
 	CR();
 }
