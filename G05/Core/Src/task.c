@@ -197,7 +197,7 @@ void bno055_init()
 				bno055_calData = bno055_getCalibrationData();
 				bno055_setCalibrationData(bno055_calData);
 				TM_BKPSRAM_WriteCalData(BNO055CAL_ADR, bno055_calData);
-				flagcal = 0;
+				flagcal = 1;
 				TM_BKPSRAM_Write8(FLAGCAL_ADR, flagcal);
 				break;
 			}
@@ -289,7 +289,7 @@ float pressuretoalt(float press)
     float hasil;
     if (press != 0)
     {
-    	hasil = 44330.0 * (1.0 - pow((press/1013.25), 0.190295));
+    	hasil = 44330.0 * (1.0 - pow((press/1013.25), (1/5.255)));
     }
     else
     {
@@ -443,29 +443,28 @@ void state()
     else if (datatelemetri.alt <= 150 && flagstate == 3 && !flaginvalid)
     {
 		servogerak(&htim3, TIM_CHANNEL_3, 135);
-		flagstate = 4;
-    }
-    else if (datatelemetri.alt <= 100 && flagstate == 4 && !flaginvalid)
-    {
-		strcpy(datatelemetri.state, "HS_RELEASE");
-    	datatelemetri.pcdeploy = 'C';
-		datatelemetri.hsdeploy = 'P';
-		TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
-		TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
+		if (datatelemetri.alt <= 100)
+		{
+			strcpy(datatelemetri.state, "HS_RELEASE");
+			datatelemetri.pcdeploy = 'C';
+			datatelemetri.hsdeploy = 'P';
+			TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
+			TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
 
-		flagstate = 5;
-		TM_BKPSRAM_Write8(STATEIND_ADR,3);
+			flagstate = 4;
+			TM_BKPSRAM_Write8(STATEIND_ADR,3);
+    	}
     }
-    else if (datatelemetri.alt < 13 && flagstate == 5 && !flaginvalid)
+    else if (datatelemetri.alt < 13 && flagstate == 4 && !flaginvalid)
     {
 		strcpy(datatelemetri.state, "LANDED");
 		datatelemetri.pcdeploy = 'C';
 		datatelemetri.hsdeploy = 'P';
 		TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
 		TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
-		TM_BKPSRAM_Write8(STATEIND_ADR,4);
+
 		valid++;
-		if (valid > 4)
+		if (valid > 5)
 		{
 			valid = 0;
 
@@ -473,9 +472,15 @@ void state()
 			flagtel = 0;
 			flaggimbal = 0;
 			TM_BKPSRAM_Write8(FLAGGIMBAL_ADR, flaggimbal);
+			HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
+			flagstate = 5;
+			TM_BKPSRAM_Write8(STATEIND_ADR, 4);
 		}
-		HAL_GPIO_WritePin(BUZZER_GPIO_Port, BUZZER_Pin, SET);
     }
+    else if (datatelemetri.alt < 13 && flagstate == 5 && !flaginvalid)
+	{
+    	// do nothing
+	}
 }
 
 void CX()

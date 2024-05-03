@@ -126,14 +126,14 @@ int BMEReadRaw(void)
 	if (chipID == 0x60)
 	{
 		// membaca register 0xF7 ke 0xFE
-		HAL_I2C_Mem_Read(BME280_I2C, BME280_ADDRESS, PRESS_MSB_REG, 1, RawData, 6, HAL_MAX_DELAY);
+		HAL_I2C_Mem_Read(BME280_I2C, BME280_ADDRESS, PRESS_MSB_REG, 1, RawData, 8, HAL_MAX_DELAY);
 
 		/* Kalkulasi data parameter mentah
 		 * Data Pressure dan suhu adalah 20 bit sedangkan kelembapan adalah 16 bit
 		 */
 		pRaw = (RawData[0]<<12)|(RawData[1]<<4)|(RawData[2]>>4);
 		tRaw = (RawData[3]<<12)|(RawData[4]<<4)|(RawData[5]>>4);
-//		hRaw = (RawData[6]<<8)|(RawData[7]);
+		hRaw = (RawData[6]<<8)|(RawData[7]);
 
 		return 0;
 	}
@@ -260,11 +260,11 @@ void BME280_Measure (void)
 #endif
 		  }
 
-//		  if (hRaw == 0x8000) Humidity = 0; // nilai dalam kasus pengukuran kelembaban dinonaktifkan
-//		  else
-//		  {
-//			  Humidity = (bme280_compensate_H_int32 (hRaw))/1024.0;  // sesuai dengan datasheet, kelembaban adalah x1024
-//		  }
+		  if (hRaw == 0x8000) Humidity = 0; // nilai dalam kasus pengukuran kelembaban dinonaktifkan
+		  else
+		  {
+			  Humidity = (bme280_compensate_H_int32 (hRaw))/1024.0;  // sesuai dengan datasheet, kelembaban adalah x1024
+		  }
 	}
 
 

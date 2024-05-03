@@ -71,8 +71,6 @@ void Error_Handler(void);
 #define BUZZER_GPIO_Port GPIOB
 #define CAM1_Pin GPIO_PIN_5
 #define CAM1_GPIO_Port GPIOB
-#define CAM2_Pin GPIO_PIN_6
-#define CAM2_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 // Separate each address by 8 bit
