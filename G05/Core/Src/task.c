@@ -28,7 +28,7 @@ datatelemetri_t datatelemetri;
 uint8_t check, csh;
 uint8_t flagrefalt;
 uint8_t flaginvalid;
-uint8_t flaggimbal = 0;
+uint8_t flaggimbal = 1;
 uint8_t flagcal = 1;
 
 bno055_calibration_state_t bno055_calStat;
@@ -427,9 +427,6 @@ void state()
 			TM_BKPSRAM_Write8(HSDEPLOY_ADR,datatelemetri.hsdeploy);
 			TM_BKPSRAM_Write8(PCDEPLOY_ADR,datatelemetri.pcdeploy);
 
-			flaggimbal = 1;
-			TM_BKPSRAM_Write8(FLAGGIMBAL_ADR, flaggimbal);
-
 			flagstate = 2;
 			TM_BKPSRAM_Write8(STATEIND_ADR, 1);
 		}
@@ -595,7 +592,7 @@ void CAL()
     flagsim = 0;
     flagstate = 0;
     flagrefalt = 0;
-    flaggimbal = 0;
+    flaggimbal = 1;
     flaginvalid = 0;
     counting  = 0;
     datatelemetri.packetcount = counting;
