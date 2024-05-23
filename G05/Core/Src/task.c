@@ -201,6 +201,8 @@ void bno055_init()
 				TM_BKPSRAM_Write8(FLAGCAL_ADR, flagcal);
 				break;
 			}
+
+			HAL_Delay(1000);
 		}
     }
     else
